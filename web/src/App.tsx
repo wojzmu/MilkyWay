@@ -54,6 +54,12 @@ export default function App() {
     return counts;
   }, [stars]);
 
+  // Total likely-spurious-parallax stars (for the data-quality toggle label).
+  const spuriousCount = useMemo(
+    () => stars.reduce((n, s) => n + (s.spuriousParallax ? 1 : 0), 0),
+    [stars],
+  );
+
   const filteredStars = useMemo(
     () => (filters ? applyFilters(stars, filters) : stars),
     [stars, filters],
@@ -69,6 +75,11 @@ export default function App() {
 
   const active = filters && domains ? isFiltered(filters, domains) : false;
 
+  const theFarestDistance = useMemo(() => {
+    if (stars.length === 0) return null;
+    return Math.max(...stars.map((s) => s.distPc ? Math.round(s.distPc) : 0));
+  }, [stars]);
+
   return (
     <div className="app">
       <header className="topbar">
@@ -76,7 +87,7 @@ export default function App() {
           <span className="brand__mark">✦</span>
           <div>
             <h1>MilkyWay</h1>
-            <p className="brand__sub">The solar neighbourhood within ~65 ly</p>
+            <p className="brand__sub">The solar neighbourhood within ~{theFarestDistance ? theFarestDistance.toLocaleString() : "?"} ly</p>
           </div>
         </div>
 
@@ -138,6 +149,7 @@ export default function App() {
             filters={filters}
             domains={domains}
             counts={categoryCounts}
+            spuriousCount={spuriousCount}
             onChange={setFilters}
             onReset={() => setFilters(defaultFilters(domains))}
             onClose={() => setFiltersOpen(false)}

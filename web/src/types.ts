@@ -57,4 +57,8 @@ export interface Star {
   // Classification
   spType: string | null; // SIMBAD MK spectral type, e.g. "M3.5V"
   starClass: string; // coarse category, e.g. "Main sequence" (see categories.ts)
+
+  // Data quality
+  spuriousParallax: boolean; // likely inflated Gaia parallax (see spurious.ts /
+  // Dataset.md). From the CSV column when present, else derived client-side.
 }

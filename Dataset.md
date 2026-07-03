@@ -40,6 +40,18 @@ Produced by `nearby_stars_pipeline.py`. Primary output file:
 The 20 pc cut and `TOP 1000` limit are configurable in the script
 (`MIN_PARALLAX_MAS`, `query_gaia(limit=...)`).
 
+**Optional lower mass cut (`--min-mass MSUN`).** Run
+`python nearby_stars_pipeline.py --min-mass 0.5` to keep only stars with an
+estimated mass ≥ 0.5 M☉. This acts in two places: a *coarse* pre-filter is pushed
+into the Gaia ADQL `WHERE` (a lower mass bound becomes an upper bound on absolute
+G, `M_G = G + 5·log10(parallax) − 10`, so faint low-mass stars are never
+downloaded — often a 2–3× smaller transfer), and the *exact* cut
+(`mass_est ≥ min`) is applied to the assembled table. Because both use the same
+observed `abs_g`, the server pre-filter only ever drops a subset of what the exact
+cut removes — the result is identical to filtering after the fact. Note the cut
+**drops rows with no `mass_est`** (white dwarfs, giants, objects outside the
+calibrated main-sequence range), since an unknown mass cannot clear the threshold.
+
 ---
 
 ## 2. Field reference (merged catalogue)
@@ -78,6 +90,7 @@ These are the columns in `nearby_stars_merged.csv`.
 | `proper_name` | IAU / common name | — | SIMBAD `NAME`-prefixed identifier | e.g. `Sirius`; NaN for the majority (only a few hundred stars have one) |
 | `sp_type` | SIMBAD MK spectral type | — | SIMBAD `basic.sp_type` via TAP | e.g. `A1V`, `M3.5V`, `DA2`; NaN for stars SIMBAD has not typed (most faint Gaia stars) |
 | `star_class` | Coarse evolutionary category | — | `sp_type` luminosity class, else CMD position | One of `Main sequence`, `White dwarf`, `Subgiant`, `Red giant`, `Giant`, `Supergiant`, `Brown dwarf`, `Subdwarf`, `Unknown`. See note below |
+| `spurious_parallax` | Likely-bad Gaia parallax flag | bool | CMD-inconsistency + faint `g_mag` test (`flag_spurious_parallax`) | `True` = probably a distant background star with an inflated parallax masquerading as a faint nearby red dwarf. Concentrated toward the Galactic centre/plane. **Filter these out for any spatial or luminosity-function analysis.** See §5 "Spurious parallaxes" |
 
 ### Note on `star_class`
 
@@ -151,6 +164,44 @@ hot ≈ `#BACDFF` (blue-white), Sun ≈ `#FFF1E9` (near-white), coolest M dwarfs
 ---
 
 ## 5. Known limitations and caveats
+
+**Spurious parallaxes — the `spurious_parallax` flag.** *(Important.)* Toward
+crowded, dust-reddened directions — above all the **Galactic centre** (`l ≈ 0°`,
+`b ≈ 0°`) and the Galactic plane — Gaia DR3 produces **correlated spurious
+astrometric solutions**: distant background stars (in the bulge/inner disc,
+kiloparsecs away) are assigned an inflated parallax and leak into the "nearby"
+sample, masquerading as faint red dwarfs. The selection cuts
+`parallax_over_error > 10` and `ruwe < 1.4` do **not** remove them in dense fields
+— this is a documented DR3 limitation, not a bug in this pipeline.
+
+*How it was found.* Around `Gaia DR3 4120465287390368128` (`l ≈ 9.6°`, `b ≈ 4.9°`,
+i.e. straight toward the Galactic centre) there is a tight clump of ~80 objects
+all at nearly identical apparent brightness (`g_mag ≈ 20.3`, near Gaia's faint
+limit) and identical apparent distance (~27 pc). Within a 15° cone of the
+Galactic centre **~50 % of stars carry no mass estimate**, versus ~12 % elsewhere.
+The decisive test is the colour–magnitude diagram: these objects have a
+moderately red colour (`BP−RP ≈ 1.5–2.7`, implying `M_G ≈ 8–10` for a real dwarf)
+but an absolute magnitude of `abs_g ≈ 18` — roughly **8 magnitudes too faint for
+their colour** (median discrepancy +8 mag). No real single star sits that far
+below the main sequence; the only explanation is an over-estimated parallax
+placing a genuinely distant star at a false nearby distance.
+
+*Why they appeared as "red dwarfs without a mass".* They are not exotic stars —
+`estimate_mass` returns NaN for them because they fall past the `M_G = 16.5`
+main-sequence floor and/or lost their `BP−RP` to crowding, so the mass step
+correctly refuses to fabricate a number. The over-density of un-massed "red
+dwarfs" toward the Galactic centre **is** this contamination.
+
+*The flag.* `flag_spurious_parallax` (column `spurious_parallax`) marks them
+conservatively: a star is flagged only if it is apparently faint (`g_mag > 19`,
+i.e. really distant) **and** either (a) has a colour, is red (`BP−RP > 1`), yet
+sits > 4 mag below the main-sequence ridge, or (b) has no `BP−RP` at all yet
+claims a very faint absolute magnitude on nominally good astrometry. This leaves
+genuine nearby white and brown dwarfs untouched (they are apparently *bright*,
+`g < ~18`, because they really are close). In the ~20 pc working sample it flags
+~4 % of rows overall, but ~45 % of those within 15° of the Galactic centre versus
+~3 % elsewhere. **Filter `spurious_parallax == True` out of any spatial-density,
+kinematic, or luminosity-function analysis.**
 
 **Names come from SIMBAD, not the source catalogues.** Gaia and Hipparcos
 identify stars only by number; the `simbad_main_id` and `proper_name` columns are

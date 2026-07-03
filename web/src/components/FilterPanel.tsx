@@ -6,6 +6,7 @@ interface Props {
   filters: Filters;
   domains: FilterDomains;
   counts: Record<string, number>; // full per-category counts (unfiltered)
+  spuriousCount: number; // total likely-spurious-parallax stars in the catalogue
   onChange: (f: Filters) => void;
   onReset: () => void;
   onClose: () => void;
@@ -15,6 +16,7 @@ export default function FilterPanel({
   filters,
   domains,
   counts,
+  spuriousCount,
   onChange,
   onReset,
   onClose,
@@ -118,6 +120,30 @@ export default function FilterPanel({
           value={filters.dist}
           onChange={(dist) => onChange({ ...filters, dist })}
         />
+      </section>
+
+      {/* Data quality */}
+      <section className="filter-section">
+        <div className="filter-section__title">
+          <span>Data quality</span>
+        </div>
+        <label className="filter-cat">
+          <input
+            type="checkbox"
+            checked={filters.showSpurious}
+            onChange={(e) =>
+              onChange({ ...filters, showSpurious: e.target.checked })
+            }
+          />
+          <span className="filter-cat__label">Show spurious-parallax stars</span>
+          <span className="filter-cat__count">
+            {spuriousCount.toLocaleString()}
+          </span>
+        </label>
+        <p className="filter-hint">
+          Likely distant background stars with inflated Gaia parallaxes (crowded
+          fields toward the Galactic centre). Hidden by default.
+        </p>
       </section>
     </div>
   );

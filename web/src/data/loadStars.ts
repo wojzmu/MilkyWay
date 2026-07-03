@@ -2,10 +2,8 @@ import Papa from "papaparse";
 import type { Star } from "../types";
 import { deriveSpuriousParallax } from "../spurious";
 
-// Dataset filename comes from VITE_DATASET_FILE (.env), with a built-in default.
-const DATASET_FILE =
-  import.meta.env.VITE_DATASET_FILE ?? "nearby_stars_merged.csv";
-const CSV_URL = `${import.meta.env.BASE_URL}${DATASET_FILE}`;
+// The dataset to load is chosen at runtime from the manifest (see data/datasets.ts
+// and public/datasets.json); loadStars() takes the filename as an argument.
 
 /** Parse a possibly-empty CSV cell into `number | null`. */
 function num(value: string | undefined): number | null {
@@ -80,9 +78,9 @@ function toStar(r: Row): Star {
   };
 }
 
-/** Fetch and parse the nearby-stars catalogue from /public. */
-export async function loadStars(): Promise<Star[]> {
-  const res = await fetch(CSV_URL);
+/** Fetch and parse a nearby-stars catalogue CSV (filename served from /public). */
+export async function loadStars(file: string): Promise<Star[]> {
+  const res = await fetch(`${import.meta.env.BASE_URL}${file}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch dataset: ${res.status} ${res.statusText}`);
   }

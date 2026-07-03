@@ -9,11 +9,19 @@ import {
   isFiltered,
 } from "./filters";
 import { loadStars } from "./data/loadStars";
+import {
+  loadDatasetManifest,
+  resolveInitialDataset,
+  rememberDataset,
+  type DatasetMeta,
+} from "./data/datasets";
 import StarField3D from "./components/StarField3D";
 import HRDiagram from "./components/HRDiagram";
 import StarDetails from "./components/StarDetails";
 import Legend from "./components/Legend";
 import FilterPanel from "./components/FilterPanel";
+import DatasetPicker from "./components/DatasetPicker";
+import AboutModal from "./components/AboutModal";
 import "./App.css";
 
 type View = "3d" | "hr";
@@ -28,13 +36,33 @@ export default function App() {
   const [colorMode, setColorMode] = useState<ColorMode>("trueColor");
   const [selected, setSelected] = useState<Star | null>(null);
 
+  const [datasets, setDatasets] = useState<DatasetMeta[]>([]);
+  const [datasetFile, setDatasetFile] = useState<string | null>(null);
+
   const [domains, setDomains] = useState<FilterDomains | null>(null);
   const [filters, setFilters] = useState<Filters | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
+  // Load the dataset manifest once, then pick the initial file (URL param >
+  // remembered choice > default > first entry).
   useEffect(() => {
-    loadStars()
+    loadDatasetManifest().then((list) => {
+      setDatasets(list);
+      setDatasetFile(resolveInitialDataset(list));
+    });
+  }, []);
+
+  // (Re)load the catalogue whenever the selected dataset changes. The `ignore`
+  // flag drops a stale response if the user switches again mid-load.
+  useEffect(() => {
+    if (!datasetFile) return;
+    let ignore = false;
+    setStatus("loading");
+    setSelected(null);
+    loadStars(datasetFile)
       .then((data) => {
+        if (ignore) return;
         const d = computeDomains(data);
         setStars(data);
         setDomains(d);
@@ -42,10 +70,20 @@ export default function App() {
         setStatus("ready");
       })
       .catch((e: unknown) => {
+        if (ignore) return;
         setError(e instanceof Error ? e.message : String(e));
         setStatus("error");
       });
-  }, []);
+    return () => {
+      ignore = true;
+    };
+  }, [datasetFile]);
+
+  const handleDatasetChange = (file: string) => {
+    if (file === datasetFile) return;
+    rememberDataset(file);
+    setDatasetFile(file);
+  };
 
   // Per-category totals across the whole catalogue (for the filter checkboxes).
   const categoryCounts = useMemo(() => {
@@ -92,6 +130,14 @@ export default function App() {
         </div>
 
         <div className="topbar__right">
+          {datasetFile && (
+            <DatasetPicker
+              datasets={datasets}
+              value={datasetFile}
+              onChange={handleDatasetChange}
+            />
+          )}
+
           {status === "ready" && (
             <span className="count">
               {filteredStars.length.toLocaleString()}
@@ -142,6 +188,15 @@ export default function App() {
               HR Diagram
             </button>
           </div>
+
+          <button
+            className="iconbtn"
+            onClick={() => setAboutOpen(true)}
+            aria-label="Data sources"
+            title="Data sources"
+          >
+            ⓘ
+          </button>
         </div>
 
         {filtersOpen && filters && domains && (
@@ -190,6 +245,8 @@ export default function App() {
           </>
         )}
       </main>
+
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
     </div>
   );
 }

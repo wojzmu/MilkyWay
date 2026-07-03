@@ -1,0 +1,20 @@
+{
+  "datasets": [
+    {
+      "file": "nearby_stars_60.0pc.csv",
+      "label": "All stars within 60 pc",
+      "description": "Full merged Gaia DR3 + Hipparcos catalogue out to 60 pc.",
+      "default": true
+    },
+    {
+      "file": "nearby_stars_120.0pc_m0.9.csv",
+      "label": "Bright stars — within 120 pc (≥ 0.9 M☉)",
+      "description": "120 pc sphere, limited to stars of at least 0.9 solar masses."
+    },
+    {
+      "file": "nearby_stars_merged_20psc.csv",
+      "label": "All stars within 20 pc",
+      "description": "Dense local sample out to 20 pc."
+    }
+  ]
+}

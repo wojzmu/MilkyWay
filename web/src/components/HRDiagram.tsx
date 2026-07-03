@@ -123,5 +123,9 @@ export default function HRDiagram({
     ).catch(() => {});
   }, [selected]);
 
-  return <div ref={ref} className="hr-diagram" />;
+  return (
+    <div className="hr-diagram-wrap">
+      <div ref={ref} className="hr-diagram" />
+    </div>
+  );
 }

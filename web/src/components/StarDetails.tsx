@@ -11,15 +11,11 @@ function fmt(n: number | null, digits = 2, unit = ""): string {
   return `${n.toFixed(digits)}${unit ? ` ${unit}` : ""}`;
 }
 
-/** Side panel describing the currently selected star. */
+/** Side panel describing the currently selected star. Renders nothing when no
+ * star is selected, so the map/diagram stays fully visible (important on mobile,
+ * where the panel is a bottom sheet). */
 export default function StarDetails({ star, onClose }: Props) {
-  if (!star) {
-    return (
-      <aside className="details details--empty">
-        <p>Click a star to inspect it.</p>
-      </aside>
-    );
-  }
+  if (!star) return null;
 
   const title = star.properName ?? star.simbadMainId ?? star.starId;
 

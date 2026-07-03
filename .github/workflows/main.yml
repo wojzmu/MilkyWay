@@ -41,10 +41,16 @@ jobs:
         env:
            VITE_DATASET_FILE: nearby_stars_60.0pc.csv
           
+      - name: Show build output
+        run: |
+            pwd
+            ls -la
+            ls -la dist || echo "dist not found"
+          
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: web/dist
+          path: dist
 
   deploy:
     environment:

@@ -72,18 +72,29 @@ Szacunki w sesjach pracy z Claude Code (wieczór lub pół dnia weekendu).
 **Stan na 31.10.2026** (gałąź `m3-odleglosci`, wypchnięta, bez PR; bazuje na
 niepołączonej `m1-magazyn`):
 - M1–M4 **zrobione**; dokumenty: `JAK_POBIERAMY_DANE.md`,
-  `JAK_LICZYMY_ODLEGLOSCI.md`, `JAK_RYSUJEMY_MAPE.md`. M2 T6 (ESA = AIP)
+  `JAK_LICZYMY_ODLEGLOSCI.md`, `JAK_RYSUJEMY_MAPE.md`. M5 część 1 (pył)
+  **zrobiona**: D-024, `JAK_LICZYMY_PYL.md`, katalog schematu v3. M2 T6 (ESA = AIP)
   i T7 (przegląd) zamknięte (D-022).
 - Dane lokalne (git-ignorowane): pobranie `data/raw/dr3/dr3_g15_p0.5`,
   zbiór 60 pc `data/raw/dr3/dr3_p16.667`, Hipparcos `data/raw/dr3/aux`,
-  katalog `data/dr3_g15_p0.5_v2` (23 373 946 wierszy), eksporty viewera
+  mapa pyłu `data/dust/edenhofer2023`, katalog `data/dr3_g15_p0.5_v3`
+  (23 373 946 wierszy; v2 nie otwiera się w schemacie v3), eksporty viewera
   `web/public/map_1250pc` i `web/public/map_tracers_1250pc`.
 - **Otwarte przed publikacją mapy:** hosting eksportów na Hugging Face
   (D-023; konto i wgranie po stronie użytkownika), potem pełne URL-e
   w `web/public/datasets.json` i merge do `master`.
-- **Następny: M5** — mapa pyłu Edenhofer (`dustmaps.edenhofer2023`, D-003)
-  dla kolorów i sprawdzenia „promieni” (cienie obłoków, D-023), fit
-  wysokości skali z M_G ≤ 6 (D-014); dokument prostym językiem na koniec.
+- **Zadanie viewera: nazwy znanych gwiazd** (zaległość z D-019, „nazwy
+  w M4”; `proper_name` jest dziś puste). Na mapie podpisy ~50–150
+  najbardziej znanych gwiazd po polsku („Syriusz”, „Betelgeza”, „Wega”…).
+  Szkic: statyczna lista w repo (nazwa PL, nazwa IAU/WGSN, numer HIP),
+  dopasowanie po `hip`, eksport `labels.json` z pozycjami obok
+  `points.bin`, w viewerze etykiety HTML/sprite z ukrywaniem przy
+  oddaleniu i tłoku. Gotowe, gdy podpisy są widoczne w obu mapach,
+  a gwiazdy spoza 1,25 kpc albo spoza katalogu są wypisane w raporcie
+  eksportu zamiast cicho pominięte. Przed kodem: wpis w `DECISIONS.md`
+  (źródło nazw, lista, plik eksportu).
+- **Następny: M5 część 2** — fit wysokości skali z `abs_g0` ≤ 6 (D-014;
+  pył już jest, D-024); dokument prostym językiem na koniec.
 
 Termin M2 przestał być twardy (D-012). Archiwum ESA jest wyłączone
 25.11 12:00 – 2.12 CET, ale **głównym serwisem pobierania jest AIP**

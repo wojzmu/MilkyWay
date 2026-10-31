@@ -113,15 +113,21 @@ def _fetch(args, tile_ids):
 
 
 def _build(args):
-    """Build the schema-v2 catalogue from a complete raw fetch (M3)."""
-    from . import build, raw
+    """Build the catalogue from a complete raw fetch (M3) with extinction (M5)."""
+    from . import build, dust, raw
     fetch_id = args.fetch_id or raw.DEFAULT_FETCH_ID
     raw_dir = os.path.join(args.data_dir, "raw", raw.RELEASE)
     dataset_id = args.dataset_id or f"{fetch_id}_v{_schema_version()}"
     out = os.path.join(args.data_dir, dataset_id)
+    dust_map = None if args.no_dust else (args.dust_map or str(dust.DEFAULT_MAP_PATH))
+    if dust_map is not None and not os.path.isfile(dust_map):
+        print(f"dust map {dust_map} not found: download it (see docs/JAK_LICZYMY_PYL.md) "
+              f"or pass --no-dust")
+        return 1
     build.build_catalogue(os.path.join(raw_dir, fetch_id), os.path.join(raw_dir, "aux"),
                           out, dataset_id=dataset_id,
-                          quality_cuts=build.LEGACY_QUALITY_CUTS if args.legacy_cuts else None)
+                          quality_cuts=build.LEGACY_QUALITY_CUTS if args.legacy_cuts else None,
+                          dust_map_path=dust_map)
     return 0
 
 
@@ -188,6 +194,11 @@ def main(argv=None):
                         help="with --build: apply the old pipeline's quality cuts "
                              "(parallax_over_error > 10, ruwe < 1.4; Hipparcos plx/e > 10), "
                              "for comparison with the reference catalogue (D-013)")
+    parser.add_argument("--dust-map", default=None, metavar="FITS",
+                        help="with --build: Edenhofer 3D dust map (default "
+                             "data/dust/edenhofer2023/mean_and_std_healpix.fits)")
+    parser.add_argument("--no-dust", action="store_true",
+                        help="with --build: leave the extinction columns empty")
     parser.add_argument("--max-jobs", type=int, default=2, metavar="N",
                         help="concurrent archive jobs for --fetch, 1..4 (default 2)")
     args = parser.parse_args(argv)
@@ -202,9 +213,11 @@ def main(argv=None):
         for value in (args.fetch_id, args.dataset_id):
             if value is not None and (msg := _id_problem(value)):
                 parser.error(msg)
+        if args.dust_map and args.no_dust:
+            parser.error("--dust-map and --no-dust are mutually exclusive")
         return _build(args)
-    if args.legacy_cuts:
-        parser.error("--legacy-cuts requires --build")
+    if args.legacy_cuts or args.dust_map or args.no_dust:
+        parser.error("--legacy-cuts, --dust-map and --no-dust require --build")
     if fetching:
         if args.to_parquet or args.dataset or args.plot_only or args.export_csv:
             parser.error("--fetch/--fetch-tiles/--fetch-aux cannot be combined with "

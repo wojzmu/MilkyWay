@@ -12,7 +12,9 @@ points.bin (little-endian, 4-byte aligned):
     N x 3 int16     x, y, z in units of index.json "position_scale_pc" (dist_max/32767,
                     ~0.04 pc for 1250 pc; heliocentric Galactic: x -> Galactic centre,
                     y -> rotation, z -> north Galactic pole); padded to 4 bytes
-    N x 4 uint8     R, G, B (display sRGB; grey when unknown), U (uncertainty code)
+    N x 4 uint8     R, G, B (display sRGB of the dereddened colour bp_rp0, observed
+                    bp_rp where the catalogue has no extinction; grey when unknown),
+                    U (uncertainty code)
     N x 1 uint8     star_class code (index into index.json "class_codes"), padded to 4
 details.bin:
     header 16 B: b"MWDT", uint16 version, uint16 record size (24), uint32 N, uint32 0
@@ -25,6 +27,9 @@ f = (r_hi - r_lo) / (2 dist) is the relative distance uncertainty; 255 = r_hi un
 The byte carries data, not opacity: the viewer maps it to opacity with a slider.
 
 Version 1 (float32 positions, 17 B/star) is no longer written; the viewer still reads it.
+
+`abs_mag_max` cuts on the extinction-corrected abs_g0 (M5, D-024), abs_g where it is
+missing. details.bin keeps the observed g_mag and bp_rp.
 
 Thinning: a star is kept when splitmix64(id) < f * 2**64 with one f = target / N
 everywhere (keeps the disc's contrast); stars brighter than `always_g_max` are always
@@ -41,6 +46,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from . import schema, storage
+from .color import build_rgb_table, teff_from_bprp
 
 FORMAT_VERSION = 2
 DETAILS_VERSION = 1
@@ -49,8 +55,8 @@ DEFAULT_DIST_MAX_PC = 1250.0       # plan 1.0: the Edenhofer dust map's reach (D
 DEFAULT_ALWAYS_G_MAX = 6.0         # naked-eye stars are never thinned out
 U_F_MIN, U_F_MAX = 1e-3, 0.5
 CLASS_CODES = list(schema.ENUMS["star_class"])
-_COLUMNS = ["source_id", "hip", "x_pc", "y_pc", "z_pc", "rgb_r", "rgb_g", "rgb_b",
-            "dist_pc", "r_lo_pc", "r_hi_pc", "g_mag", "bp_rp", "abs_g", "star_class"]
+_COLUMNS = ["source_id", "hip", "x_pc", "y_pc", "z_pc", "dist_pc", "r_lo_pc", "r_hi_pc",
+            "g_mag", "bp_rp", "bp_rp0", "abs_g", "abs_g0", "star_class"]
 
 _M64 = (1 << 64) - 1
 
@@ -89,8 +95,17 @@ def _f32(table, name):
 def _eligible(t, dist_max_pc, abs_mag_max):
     keep = pc.less_equal(t["dist_pc"], dist_max_pc)
     if abs_mag_max is not None:                       # null abs_g -> excluded
-        keep = pc.and_(keep, pc.fill_null(pc.less_equal(t["abs_g"], abs_mag_max), False))
+        m = pc.coalesce(t["abs_g0"], t["abs_g"])
+        keep = pc.and_(keep, pc.fill_null(pc.less_equal(m, abs_mag_max), False))
     return keep
+
+
+def display_rgb(t):
+    """(N, 3) uint8 sRGB from bp_rp0, falling back to the observed bp_rp."""
+    bprp = pc.coalesce(t["bp_rp0"], t["bp_rp"]).to_numpy(zero_copy_only=False)
+    r, g, b, _ = build_rgb_table(teff_from_bprp(bprp.astype(np.float64)))
+    return np.stack([np.nan_to_num(np.asarray(c, np.float64), nan=128) for c in (r, g, b)],
+                    axis=1).astype(np.uint8)
 
 
 def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
@@ -109,7 +124,7 @@ def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
     # Pass 1: how many stars the cut leaves, to fix f.
     n_eligible = 0
     for f in files:
-        d = pq.read_table(f, columns=["dist_pc", "abs_g"])
+        d = pq.read_table(f, columns=["dist_pc", "abs_g", "abs_g0"])
         n_eligible += pc.sum(_eligible(d, dist_max_pc, abs_mag_max)).as_py() or 0
     frac = min(1.0, target / n_eligible) if n_eligible and target else 1.0
     threshold = np.uint64(min(_M64, int(frac * 2 ** 64)))
@@ -139,8 +154,7 @@ def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
     n = t.num_rows
 
     dist, r_lo, r_hi = _f32(t, "dist_pc"), _f32(t, "r_lo_pc"), _f32(t, "r_hi_pc")
-    rgb = np.stack([pc.fill_null(t[c], 128).to_numpy().astype(np.uint8)
-                    for c in ("rgb_r", "rgb_g", "rgb_b")], axis=1)
+    rgb = display_rgb(t)
     rgbu = np.concatenate([rgb, uncertainty_code(dist, r_lo, r_hi)[:, None]], axis=1)
     cls = pc.index_in(t["star_class"], pa.array(CLASS_CODES)).to_numpy(
         zero_copy_only=False)
@@ -177,7 +191,9 @@ def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
         "manifest_sha256": storage._sha256(root / storage.MANIFEST_NAME),
         "n": n, "frame": "heliocentric Galactic, pc: x -> GC, y -> rotation, z -> NGP",
         "position_scale_pc": scale,
+        "colour": "sRGB of teff_from_bprp(bp_rp0), bp_rp where bp_rp0 is missing",
         "selection": {"dist_pc_max": dist_max_pc, "abs_mag_max": abs_mag_max,
+                      "abs_mag_column": "abs_g0, abs_g where missing",
                       "dataset_selection": manifest["selection"]},
         "sampling": {"method": "splitmix64(id) < f * 2**64", "target": target,
                      "n_eligible": int(n_eligible), "f": frac,

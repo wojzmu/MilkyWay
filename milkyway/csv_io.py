@@ -62,17 +62,19 @@ def _fill_v2_columns(df):
     """Schema-v2 columns a legacy CSV lacks: no parallax error or zero-point is known,
     so distances stay the plain 1000/parallax already in dist_pc."""
     from .astrometry import galactocentric_xyz
+    from .dust import add_extinction
     for c in ("parallax_error", "parallax_zp_mas", "ruwe", "r_lo_pc", "r_hi_pc"):
         df[c] = np.nan
     df["zp_origin"], df["dist_origin"], df["dist_flag"] = "none", "parallax_inversion", "no_error"
     df["xgc_pc"], df["ygc_pc"], df["zgc_pc"] = galactocentric_xyz(
         df["ra"].to_numpy(), df["dec"].to_numpy(), df["dist_pc"].to_numpy())
+    add_extinction(df, None)                          # schema v3: no dust map here
 
 
 def read_catalogue_csv(path):
     """Read a legacy catalogue CSV into a validated `pa.Table` (CATALOGUE_SCHEMA).
 
-    Columns added in schema v2 are filled by _fill_v2_columns()."""
+    Columns added in schema v2 and v3 are filled by _fill_v2_columns()."""
     dtypes = {c: str for c in _STR_COLS if c in LEGACY_CSV_COLUMNS}
     dtypes.update({c: "Int64" for c in _RGB_COLS})
     # Only "" is NA: strings like "NA" or "None" in name columns are real values.

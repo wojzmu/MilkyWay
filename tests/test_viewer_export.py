@@ -80,3 +80,28 @@ def test_abs_mag_cut_without_thinning(dataset, tmp_path):
     df = catalog_query.read_catalogue(dataset)
     assert n == int((df["abs_g"] <= 0.5).sum()) > 0         # every eligible star, no thinning
     assert idx["sampling"]["f"] == 1.0 and idx["selection"]["abs_mag_max"] == 0.5
+
+
+def test_display_rgb_prefers_dereddened_colour():
+    import pyarrow as pa
+    from milkyway.color import build_rgb_table, teff_from_bprp
+    t = pa.table({"bp_rp0": pa.array([0.0, None, None], pa.float32()),
+                  "bp_rp": pa.array([1.5, 1.5, None], pa.float32())})
+    rgb = ve.display_rgb(t)
+    r, g, b, _ = build_rgb_table(teff_from_bprp(np.array([0.0, 1.5])))
+    assert rgb[:2].tolist() == np.stack([r, g, b], axis=1).tolist()
+    assert rgb[2].tolist() == [128, 128, 128]
+
+
+def test_abs_mag_cut_uses_dereddened_magnitude(tmp_path):
+    from tests.test_dust import write_map
+    fdir, tiles = _fetch(tmp_path)
+    adir = _aux(tmp_path, tiles[7].lo)
+    dmap = write_map(tmp_path / "dust.fits", 1e-3, bounds=np.array([69.0, 300.0, 1250.0]))
+    build.build_catalogue(fdir, adir, tmp_path / "ds", dataset_id="ds",
+                          dust_map_path=dmap, log=lambda *a: None)
+    df = catalog_query.read_catalogue(tmp_path / "ds")
+    ve.export_viewer(tmp_path / "ds", tmp_path / "out", target=None, abs_mag_max=0.5)
+    *_, n, _, _, _, _ = _read(tmp_path / "out")
+    m = df["abs_g0"].fillna(df["abs_g"])
+    assert n == int(((m <= 0.5) & (df["dist_pc"] <= 1250)).sum())

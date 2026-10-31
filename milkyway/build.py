@@ -13,7 +13,8 @@ partition per raw tile. Two passes over the tiles:
    pass the fetch's own selection (parallax, G) are kept.
 2. Rows. Each tile becomes one table: zero-point and corrected parallax
    (`parallax.py`), inversion distances (`distance.py`), positions, display colour,
-   mass, UVW and CMD class, plus the Hipparcos rows that fall in that partition.
+   mass, UVW and CMD class, extinction from the 3D dust map (`dust.py`, M5), plus
+   the Hipparcos rows that fall in that partition.
 
 Every row is kept: quality columns (`ruwe`, `dist_flag`) are stored, never cut on
 here; the 1.25 kpc limit is applied at export (M4). The one exception is
@@ -29,7 +30,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-from . import distance, parallax, raw, schema, storage
+from . import distance, dust, parallax, raw, schema, storage
 from .astrometry import (add_galactic_xyz, compute_uvw, galactocentric_xyz,
                          galcen_frame_params, propagate_hipparcos)
 from .classify import classify_stars, flag_spurious_parallax
@@ -160,7 +161,7 @@ def match_candidates(fetch_dir, coord, cand, g_hip, cuts=None):
     return matched, info
 
 
-def _derive(df):
+def _derive(df, dust_map=None):
     """Columns computed the same way for Gaia and Hipparcos rows (needs dist_pc)."""
     df = add_galactic_xyz(df)
     df["xgc_pc"], df["ygc_pc"], df["zgc_pc"] = galactocentric_xyz(
@@ -174,10 +175,10 @@ def _derive(df):
         df[c] = None
     df["star_class"] = classify_stars(df)
     df["spurious_parallax"] = flag_spurious_parallax(df).to_numpy()
-    return df
+    return dust.add_extinction(df, dust_map)
 
 
-def gaia_rows(t, hip_by_source_id):
+def gaia_rows(t, hip_by_source_id, dust_map=None):
     """DataFrame with all catalogue columns from one raw tile (pa.Table)."""
     d = t.to_pandas()
     sid = t["source_id"].to_pylist()                  # Python ints: ids exceed 2**53
@@ -206,10 +207,10 @@ def gaia_rows(t, hip_by_source_id):
         "abs_g": g + 5 * np.log10(varpi_c) - 10, "phot_origin": "native_gaia",
         "teff_gspphot": d["teff_gspphot"], "mass_flame": np.nan, "age_flame": np.nan,
     })
-    return _derive(df)
+    return _derive(df, dust_map)
 
 
-def hipparcos_rows(cand, coord):
+def hipparcos_rows(cand, coord, dust_map=None):
     """DataFrame with all catalogue columns for the kept Hipparcos candidates."""
     import astropy.units as u
     from astropy_healpix import HEALPix
@@ -224,7 +225,7 @@ def hipparcos_rows(cand, coord):
     df["parallax_error"] = cand["e_plx"].to_numpy()
     df["parallax_zp_mas"], df["zp_origin"], df["ruwe"] = np.nan, "none", np.nan
     df["dist_origin"] = distance.DIST_ORIGIN
-    return _derive(df)
+    return _derive(df, dust_map)
 
 
 def _code_version():
@@ -240,12 +241,21 @@ def _code_version():
 
 
 def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts=None,
-                    log=print):
-    """Build the catalogue dataset; returns its manifest."""
+                    dust_map_path=None, log=print):
+    """Build the catalogue dataset; returns its manifest.
+
+    `dust_map_path` is the Edenhofer HEALPix file (`dust.DEFAULT_MAP_PATH`); None
+    leaves the extinction columns empty (dust_flag "none")."""
     t0 = time.time()
     fetch_dir, aux_dir = Path(fetch_dir), Path(aux_dir)
     fm = raw.open_fetch(fetch_dir)
     selection = fm["selection"]
+    dust_map = None
+    if dust_map_path is not None:
+        log(f"Dust map: loading {dust_map_path} ...")
+        dust_map = dust.load_map(dust_map_path)
+        log(f"  {len(dust_map.bounds) - 1} shells to {dust_map.bounds[-1]:.0f} pc "
+            f"({time.time() - t0:.0f} s)")
 
     hip, nb, aux_hashes = _load_hipparcos(aux_dir)
     cand, coord, hip_counts = hipparcos_candidates(hip, nb, selection, quality_cuts)
@@ -266,7 +276,7 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
         f"{hip_counts['kept']} kept as Hipparcos rows")
     keep = ~matched
     if keep.any():
-        hip_df = hipparcos_rows(cand[keep].reset_index(drop=True), coord[keep])
+        hip_df = hipparcos_rows(cand[keep].reset_index(drop=True), coord[keep], dust_map)
         hip_part = schema.partition_of(hip_df["healpix"].to_numpy(), fm["tile_level"])
     else:
         hip_df, hip_part = pd.DataFrame({"hip": pd.array([], dtype="Int64")}), np.zeros(0)
@@ -284,7 +294,7 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
     pos = pos[~pos["sid"].duplicated(keep=False)]
     hip_by_sid.update(zip(pos["sid"].tolist(), pos["hip"].tolist()))
     hip_counts["gaia_rows_with_hip"] = len(hip_by_sid)    # those in the fetch get it
-    zp_counts, flag_counts, n_tables = {}, {}, [0]
+    zp_counts, flag_counts, dust_counts, n_tables = {}, {}, {}, [0]
 
     def tables():
         for k, t in raw.read_tiles(fetch_dir):
@@ -294,10 +304,11 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
             if t.num_rows == 0 and len(extra) == 0:
                 yield schema.CATALOGUE_SCHEMA.empty_table()   # -> empty partition file
                 continue
-            parts = ([gaia_rows(t, hip_by_sid)] if t.num_rows else []) + (
+            parts = ([gaia_rows(t, hip_by_sid, dust_map)] if t.num_rows else []) + (
                 [extra] if len(extra) else [])
             df = pd.concat(parts, ignore_index=True)[list(schema.COLUMNS)]
-            for col, acc in (("zp_origin", zp_counts), ("dist_flag", flag_counts)):
+            for col, acc in (("zp_origin", zp_counts), ("dist_flag", flag_counts),
+                             ("dust_flag", dust_counts)):
                 for v, n in df[col].value_counts().items():
                     acc[v] = acc.get(v, 0) + int(n)
             yield schema.conform(df)
@@ -305,7 +316,7 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
 
     provenance = {
         "parallax": parallax.provenance(), "distance": distance.provenance(),
-        "frame": galcen_frame_params(),
+        "frame": galcen_frame_params(), "dust": dust.provenance(dust_map),
         "hipparcos": {"match_radius_arcsec": HIP_MATCH_ARCSEC, "max_abs_dg": HIP_MAX_DG,
                       "sure_match_arcsec": HIP_SURE_ARCSEC,
                       "parallax_match_arcsec": HIP_PLX_ARCSEC,
@@ -314,7 +325,8 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
                       "epoch_from": 1991.25, "epoch_to": 2016.0,
                       "catalogue": "public.hipparcos (ESA 1997) + gaiadr3.hipparcos2_best_neighbour",
                       "counts": hip_counts},
-        "counts": {"zp_origin": zp_counts, "dist_flag": flag_counts},
+        "counts": {"zp_origin": zp_counts, "dist_flag": flag_counts,
+                   "dust_flag": dust_counts},
         "code": _code_version(),
     }
     source = {"kind": "raw_fetch", "fetch_id": fm["fetch_id"], "service": fm["service"],

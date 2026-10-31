@@ -11,6 +11,38 @@ decyzja — dopisz.
 
 ---
 
+## D-024 · 2026-10-31 · Pył z mapy Edenhofer 2024 (M5, schemat v3)
+**Decyzja:**
+- Mapa: `mean_and_std_healpix.fits` (Zenodo 8187943, 3,25 GB, MD5
+  10c823a5…), tylko średnia. Plik czytamy sami (`milkyway/dust.py`), nie
+  przez `dustmaps.edenhofer2023` (D-003): dustmaps wymaga healpy, a healpy
+  nie ma kół na Windows. Interpolacja HEALPix: `astropy-healpix`
+  (dwuliniowa, 4 piksele). E sumujemy na **granicach** powłok i bierzemy
+  liniowo w odległości (dokładne przy stałej gęstości w powłoce); dustmaps
+  liczy na środkach powłok, w log E. Bliżej niż 68,6 pc: E(68,6)·d/68,6
+  (`dust_flag = inner`), dalej niż 1248,1 pc: E z brzegu (`beyond_map`).
+  Plik opisuje całkę wewnętrzną jako „within 68.8 pc” (środek pierwszej
+  powłoki), a pierwsza granica to 68,62 pc; traktujemy ją jako E(68,62).
+- Jednostki: E Zhang, Green & Rix 2023, A_λ = E·R(λ); krzywa
+  `extinction_curve.txt` (Zenodo 7811871), poniżej 392 nm przedłużona
+  liniowo. A_G, A_BP, A_RP z tabeli (Teff, E): pasma EDR3 (SVO
+  GAIA3.G/Gbp/Grp) × Planck(Teff) × λ, z nieliniowością w E. Teff
+  z `teff_from_bprp(bp_rp0)`, iteracja do 1e-4 mag; bez koloru 5800 K.
+  Dane wejściowe w `milkyway/dust_data/`.
+- Schemat v3: `dust_e`, `a_g`, `e_bp_rp`, `bp_rp0`, `abs_g0`,
+  `dust_flag`. `rgb_*`/`teff_color` w katalogu zostają z koloru
+  obserwowanego; eksport viewera barwi wg `bp_rp0`, a `--abs-mag-max`
+  tnie po `abs_g0` (D-023: mapa tracers 913 280 → 1 269 275 gwiazd).
+  `--build` wymaga mapy albo `--no-dust`.
+**Dlaczego:** pył zmienia kolory i M_G, a „promienie” w widoku z góry
+okazały się cieniami obłoków: przy l = 20–40° (Szczelina Orła) jest
+o połowę mniej gwiazd 600–1200 pc niż przy l = 0–10°, przy medianie
+A_G 1,2 wobec 0,6. Kontrola: A_G/A_V = 0,86 i A_G/E(BP−RP) = 1,85 dla
+5800 K; na 1,82 mln gwiazd z `ag_gspphot` mediana 0,172 (nasza) wobec
+0,173 (Gaia), korelacja 0,81. W 1,25 kpc mediana A_G = 0,18 mag, 5,1%
+gwiazd ma A_G > 1. Szczegóły: `docs/JAK_LICZYMY_PYL.md`.
+**Źródło:** sesja Claude Code (M5), 31.10.2026.
+
 ## D-023 · 2026-10-31 · Mapa „disc tracers” (M_G ≤ 2), format v2, hosting
 **Decyzja:**
 - Drugi eksport viewera: wszystkie gwiazdy w 1,25 kpc z M_G ≤ 2

@@ -10,6 +10,7 @@ import pytest
 pytest.importorskip("zero_point")
 
 from milkyway import build, catalog_query, raw, storage   # noqa: E402
+from tests.test_dust import write_map                     # noqa: E402
 from tests.test_raw import make_table                    # noqa: E402
 
 N = 2   # rows per tile
@@ -72,7 +73,9 @@ def built(tmp_path_factory):
     gaia_sid = tiles[7].lo                       # first row of tile 7
     adir = _aux(tmp, gaia_sid)
     out = tmp / "ds"
-    m = build.build_catalogue(fdir, adir, out, dataset_id="ds", log=lambda *a: None)
+    dmap = write_map(tmp / "dust.fits", 1e-3, bounds=np.array([69.0, 300.0, 1250.0]))
+    m = build.build_catalogue(fdir, adir, out, dataset_id="ds", dust_map_path=dmap,
+                              log=lambda *a: None)
     return m, out, gaia_sid
 
 
@@ -87,6 +90,8 @@ def test_manifest_and_counts(built):
     assert m["provenance"]["counts"]["zp_origin"] == {"lindegren2021": 192 * N, "none": 3}
     assert m["provenance"]["parallax"]["method"] == "lindegren2021_clamped"
     assert m["provenance"]["frame"]["preset"] == "v4.0"
+    assert m["provenance"]["dust"]["map"]["r_max_pc"] == 1250.0
+    assert sum(m["provenance"]["counts"]["dust_flag"].values()) == 192 * N + 3
     assert m["selection"] == {**raw.DEFAULT_SELECTION, "quality_cuts": None}
 
 
@@ -106,6 +111,13 @@ def test_rows(built):
     # Galactocentric: distance from the Sun's position (-8121.97, 0, 20.8) is dist_pc
     d = np.sqrt((df["xgc_pc"] + 8121.9734) ** 2 + df["ygc_pc"] ** 2 + (df["zgc_pc"] - 20.8) ** 2)
     np.testing.assert_allclose(d, df["dist_pc"], atol=0.01)
+    # dust: constant 1e-3 E/pc out to 1250 pc
+    np.testing.assert_allclose(df["dust_e"], 1e-3 * np.minimum(df["dist_pc"], 1250),
+                               rtol=1e-4)
+    np.testing.assert_allclose(df["abs_g0"], df["abs_g"] - df["a_g"], rtol=1e-5)
+    has_c = df["bp_rp"].notna()
+    np.testing.assert_allclose(df.loc[has_c, "bp_rp0"],
+                               (df["bp_rp"] - df["e_bp_rp"])[has_c], atol=1e-5)
 
 
 def test_galactocentric_sun_and_roundtrip():

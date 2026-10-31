@@ -7,6 +7,8 @@ today's catalogue columns plus the identifiers `source_id`, `hip` and `healpix`.
 Version 2 (M3, D-020) adds the parallax layer (`parallax_error`, `parallax_zp_mas`,
 `zp_origin`, `ruwe`), distance quantiles and flags (`r_lo_pc`, `r_hi_pc`,
 `dist_origin`, `dist_flag`) and Galactocentric positions (`xgc_pc`...).
+Version 3 (M5, D-024) adds extinction from the Edenhofer 3D dust map (`dust_e`,
+`a_g`, `e_bp_rp`, `bp_rp0`, `abs_g0`, `dust_flag`).
 
 Deliberate departures from plan v4 (see docs/DECISIONS.md):
 - `star_id` keeps the current pipeline format, "Gaia DR3 <source_id>" /
@@ -20,7 +22,7 @@ package root, so `MilkyWay.py` and the colour/photometry math still run without 
 import numpy as np
 import pyarrow as pa
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SCHEMA_METADATA_KEY = b"milkyway.schema_version"
 
 # star_id prefixes. The Gaia prefix names the data release on purpose: source_ids
@@ -51,6 +53,9 @@ ENUMS = {
     "dist_origin": ("parallax_inversion",),
     # distance.inversion_distances(); "no_error" = parallax error unknown (legacy CSV).
     "dist_flag": ("ok", "low_snr", "no_error"),
+    # dust.integrated_e(); "inner" = closer than the map's first shell (69 pc), E
+    # scaled; "beyond_map" = farther than 1250 pc, E is a lower bound; "none" = no map.
+    "dust_flag": ("map", "inner", "beyond_map", "none"),
 }
 
 _f64, _f32, _str = pa.float64(), pa.float32(), pa.string()
@@ -104,7 +109,14 @@ _FIELDS = [
     ("rgb_r",             pa.uint8(),   True),
     ("rgb_g",             pa.uint8(),   True),
     ("rgb_b",             pa.uint8(),   True),
-    ("rgb_hex",           _str,         True),
+    ("rgb_hex",           _str,         True),   # from observed bp_rp (reddened)
+    # Extinction (M5, D-024): Edenhofer et al. 2024 mean map, Zhang+2023 units E.
+    ("dust_e",            _f32,         True),   # integrated E to dist_pc
+    ("a_g",               _f32,         True),   # extinction in G, mag
+    ("e_bp_rp",           _f32,         True),   # reddening E(BP-RP), mag
+    ("bp_rp0",            _f32,         True),   # bp_rp - e_bp_rp
+    ("abs_g0",            _f32,         True),   # abs_g - a_g
+    ("dust_flag",         _str,         False),
     # derived
     ("mass_est",          _f32,         True),
     ("U",                 _f32,         True),

@@ -82,16 +82,16 @@ Progress goes to `fetch.log`; read `fetch_summary.json` for the outcome. Exit co
 Catalogue build (milestone M3; `milkyway/build.py`, offline):
 
 ```bash
-python MilkyWay.py --build [--fetch-id ID] [--dataset-id ID]   # raw tiles + Hipparcos aux -> data/<fetch-id>_v2/ (~4 min)
+python MilkyWay.py --build [--fetch-id ID] [--dataset-id ID] [--dust-map FITS | --no-dust]   # -> data/<fetch-id>_v3/
 ```
 
-Needs a complete fetch and `--fetch-aux`. Writes the schema-v2 dataset with zero-point-corrected parallaxes, inversion distances and Galactocentric xyz; all rows are kept (the 1.25 kpc cut happens at export, M4). `tests/test_reference.py` compares against the frozen 60 pc reference using the local no-G-limit fetch `data/raw/dr3/dr3_p16.667` and skips when it is absent.
+Needs a complete fetch, `--fetch-aux` and (unless `--no-dust`) the Edenhofer dust map `data/dust/edenhofer2023/mean_and_std_healpix.fits` (Zenodo 8187943, 3.25 GB, md5 in `milkyway/dust.py`; M5, D-024). Writes the schema-v2 dataset with zero-point-corrected parallaxes, inversion distances and Galactocentric xyz; all rows are kept (the 1.25 kpc cut happens at export, M4). `tests/test_reference.py` compares against the frozen 60 pc reference using the local no-G-limit fetch `data/raw/dr3/dr3_p16.667` and skips when it is absent.
 
 Viewer export (milestone M4; `milkyway/viewer_export.py`, D-021/D-023):
 
 ```bash
-python MilkyWay.py --dataset dr3_g15_p0.5_v2 --export-viewer web/public/map_1250pc            # 1.5 M stars, thinned
-python MilkyWay.py --dataset dr3_g15_p0.5_v2 --export-viewer web/public/map_tracers_1250pc     --abs-mag-max 2 --viewer-target 0                                                     # disc tracers, all 913 k
+python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-viewer web/public/map_1250pc            # 1.5 M stars, thinned
+python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-viewer web/public/map_tracers_1250pc     --abs-mag-max 2 --viewer-target 0                                                     # disc tracers (abs_g0 <= 2), all 1.27 M
 ```
 
 Writes `points.bin` (v2: int16 positions, 11 B/star), `details.bin` (24 B/star, read per click via HTTP Range) and `index.json`; output is git-ignored. Not deployed yet: plan is hosting on Hugging Face and absolute URLs in `web/public/datasets.json` (the loader accepts them).
@@ -130,7 +130,8 @@ calls `milkyway.cli.main()`. The logic is split by concern:
 | `astrometry.py` | epoch propagation, cross-match, UVW, `add_galactic_xyz`, `galactocentric_xyz` (astropy preset `v4.0`) |
 | `parallax.py` | zero-point via `gaiadr3-zeropoint`, inputs clamped to the interior of its validity range; `zp_origin` (M3) |
 | `distance.py` | inversion distances: quantiles `r_lo_pc`/`dist_pc`/`r_hi_pc`, `dist_flag` (M3) |
-| `build.py` | raw fetch + Hipparcos aux -> schema-v2 catalogue dataset; Hipparcos merge rules (M3) |
+| `build.py` | raw fetch + Hipparcos aux -> catalogue dataset; Hipparcos merge rules (M3) |
+| `dust.py` | Edenhofer 3D dust map reader (no healpy), E -> A_G, E(BP−RP), dereddening (M5); inputs in `milkyway/dust_data/` |
 | `pipeline.py` | `gaia/hipparcos_to_common` + `build_merged_catalogue` orchestrator |
 | `plots.py` | figures + helpers (`_resolve_path`, `_save`, `_label_famous`) |
 | `cli.py` | argparse `main()` |
@@ -154,7 +155,7 @@ schema version and columns, that `catalog/` holds exactly the listed files, each
 file's schema and row count, and `expected_partitions`; content changes need
 `verify_hashes=True`. Readers use the manifest's file list, never a glob.
 Schema changes bump `schema.SCHEMA_VERSION` (old datasets then refuse to open
-until rebuilt) and get a `DECISIONS.md` entry. The current version is 2 (D-020); old version-1 datasets refuse to open until rebuilt.
+until rebuilt) and get a `DECISIONS.md` entry. The current version is 3 (D-024: extinction columns); older datasets refuse to open until rebuilt.
 
 ### Pipeline flow
 

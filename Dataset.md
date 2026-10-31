@@ -241,11 +241,11 @@ add the solar peculiar motion (Schönrich, Binney & Dehnen 2010: 11.1, 12.24,
 
 ---
 
-## 5a. Parquet store (schema version 2)
+## 5a. Parquet store (schema version 3)
 
 The same catalogue can be held as a partitioned Parquet dataset (milestone M1 of
 `docs/PLAN_MAPA_1.0.md`), built with `python MilkyWay.py --to-parquet FILE.csv`.
-The column contract is `milkyway/schema.py`; decisions D-004, D-011, D-015, D-016, D-020. Version 1 datasets refuse to open until rebuilt.
+The column contract is `milkyway/schema.py`; decisions D-004, D-011, D-015, D-016, D-020, D-024. Older-version datasets refuse to open until rebuilt.
 
 **Extra columns** (beyond the field table in §2):
 
@@ -263,8 +263,14 @@ The column contract is `milkyway/schema.py`; decisions D-004, D-011, D-015, D-01
 | `dist_origin` | string | `parallax_inversion` |
 | `dist_flag` | string | `ok`, `low_snr` (ϖ_c/σ ≤ 5; row kept), `no_error` (σ unknown: legacy CSV) |
 | `xgc_pc`, `ygc_pc`, `zgc_pc` | float32, pc | Galactocentric Cartesian (astropy preset `v4.0`: Sun at 8.122 kpc, 20.8 pc above the plane) |
+| `dust_e` | float32, nullable | Extinction to `dist_pc` from the Edenhofer et al. (2024) 3D dust map (posterior mean), in units E of Zhang, Green & Rix (2023): A_λ = E·R(λ), R(550 nm) = 2.68 |
+| `a_g` | float32, nullable, mag | Extinction in Gaia G, from E through the EDR3 passband and a blackbody of the star's (dereddened) temperature |
+| `e_bp_rp` | float32, nullable, mag | Reddening E(BP−RP), same method |
+| `bp_rp0` | float32, nullable, mag | Dereddened colour `bp_rp − e_bp_rp`; null without `bp_rp` |
+| `abs_g0` | float32, nullable, mag | Extinction-corrected absolute magnitude `abs_g − a_g` |
+| `dust_flag` | string | `map` (69–1250 pc), `inner` (< 69 pc: map total scaled by d/69 pc), `beyond_map` (> 1250 pc: E at the map edge, a lower bound), `none` (built without a map: `--no-dust`, legacy CSV) |
 
-In catalogue builds (`--build`) `dist_pc` is the median distance, `1000/ϖ_c` from the zero-point-corrected parallax, and `abs_g` uses ϖ_c; `parallax_mas` stays as published. Legacy CSV rows keep `dist_pc = 1000/parallax_mas`, `zp_origin = none` and `dist_flag = no_error`. The legacy CSV export still writes only the original 36 columns.
+In catalogue builds (`--build`) `dist_pc` is the median distance, `1000/ϖ_c` from the zero-point-corrected parallax, and `abs_g` uses ϖ_c; `parallax_mas` stays as published. Legacy CSV rows keep `dist_pc = 1000/parallax_mas`, `zp_origin = none`, `dist_flag = no_error` and `dust_flag = none`. `rgb_*`/`teff_color` stay derived from the observed (reddened) `bp_rp`; the viewer export colours by `bp_rp0`. The legacy CSV export still writes only the original 36 columns.
 
 **Types:** `ra`, `dec`, `l`, `b`, `parallax_mas` are float64; all other floats are
 float32 (a CSV round trip keeps them to ≤ 1.2·10⁻⁷ relative); `rgb_*` are uint8;

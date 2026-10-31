@@ -241,6 +241,42 @@ add the solar peculiar motion (Schönrich, Binney & Dehnen 2010: 11.1, 12.24,
 
 ---
 
+## 5a. Parquet store (schema version 1)
+
+The same catalogue can be held as a partitioned Parquet dataset (milestone M1 of
+`docs/PLAN_MAPA_1.0.md`), built with `python MilkyWay.py --to-parquet FILE.csv`.
+The column contract is `milkyway/schema.py`; decisions D-004, D-011, D-015, D-016.
+
+**Extra columns** (beyond the field table in §2; `dist_pc` stays a stored column
+until distances move to `r_med_pc` in M3):
+
+| Field | Type | Description |
+|---|---|---|
+| `source_id` | int64, null for Hipparcos rows | Gaia DR3 `source_id`, parsed from `star_id`; exact (never via float64) |
+| `hip` | int32, null for Gaia rows | Hipparcos number, parsed from `star_id` |
+| `healpix` | int64 | NESTED HEALPix index at level 12: `source_id >> 35` for Gaia rows, from (ra, dec) for Hipparcos rows |
+
+**Types:** `ra`, `dec`, `l`, `b`, `parallax_mas` are float64; all other floats are
+float32 (a CSV round trip keeps them to ≤ 1.2·10⁻⁷ relative); `rgb_*` are uint8;
+text and enums (`source_catalogue`, `phot_origin`, `star_class`) are strings,
+validated against fixed value sets.
+
+**Layout:**
+
+```
+data/<dataset_id>/
+  catalog/part_hpx=<k>/part-0.parquet   # k = healpix >> 20 (HEALPix level 2, 192 pixels)
+  manifest.json                         # written last
+```
+
+Rows in each file are sorted by (`healpix`, `source_id`, `hip`), in row groups of
+131 072 rows, zstd level 3. The manifest records `status: complete`, the schema
+version and columns, the selection and source the dataset was built from, and each
+partition's row count and file SHA-256. `open_catalog()` refuses a dataset without a
+complete manifest or whose files or row counts differ from it.
+
+---
+
 ## 6. References
 
 - **Gaia DR3** — Gaia Collaboration et al. (2023); catalogue table `gaiadr3.gaia_source`.

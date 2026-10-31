@@ -40,7 +40,7 @@ Two parts that share one dataset:
 ## Commands
 
 ```bash
-pip install astroquery astropy numpy pandas matplotlib adjustText   # dependencies (no requirements.txt)
+pip install -r requirements.txt                 # dependencies (incl. pyarrow, duckdb, pytest)
 python MilkyWay.py                              # full pipeline (networked) -> CSV + PNGs (see below)
 python MilkyWay.py --plot-only                  # offline: load existing CSV, only redraw the PNGs
 python MilkyWay.py --plot-only --csv FILE.csv   # ...from a specific CSV
@@ -55,7 +55,19 @@ ADQL queries, and the output filename becomes `nearby_stars_<dist>pc.csv`. With
 from the standard 60 pc catalogue by default, since a smaller-volume file may not
 exist yet).
 
-There is no test suite, linter config, or build step. A plain run hits live ESA
+Parquet store (milestone M1; datasets live in the git-ignored `data/<id>/`):
+
+```bash
+python MilkyWay.py --to-parquet FILE.csv [--dataset-id ID]   # legacy CSV -> data/<id>/ (Parquet + manifest)
+python MilkyWay.py --plot-only --dataset ID                  # redraw the PNGs from a Parquet dataset
+python MilkyWay.py --dataset ID --export-csv OUT.csv         # legacy CSV for the web viewer
+python -m pytest -q                                          # test suite (~1 min; offline)
+```
+
+`data/reference/nearby_stars_60.0pc.csv` is the frozen reference catalogue for
+compatibility tests (SHA-256 in D-013); tests that need it skip when it is absent.
+
+There is no linter config or build step for the Python side. A plain run hits live ESA
 Gaia TAP and SIMBAD services over the network, so it needs connectivity and takes
 a while. **`--plot-only` skips all network calls** — it loads a catalogue CSV and
 only regenerates the figures, which is the fast loop when iterating on plotting
@@ -87,10 +99,23 @@ calls `milkyway.cli.main()`. The logic is split by concern:
 | `pipeline.py` | `gaia/hipparcos_to_common` + `build_merged_catalogue` orchestrator |
 | `plots.py` | figures + helpers (`_resolve_path`, `_save`, `_label_famous`) |
 | `cli.py` | argparse `main()` |
+| `schema.py` | Parquet column contract: `CATALOGUE_SCHEMA`, `conform`, `validate` (D-015) |
+| `csv_io.py` | legacy CSV ↔ Arrow (`read_catalogue_csv`, `write_catalogue_csv`) |
+| `storage.py` | partitioned write (`write_dataset`), manifest, `open_catalog` checks |
+| `catalog_query.py` | DuckDB view `catalog`, `read_catalogue`, `sky_slice`, `z_histogram` |
 
 `color.py`/`photometry.py`/`mass.py`/`classify.py` have **no network imports** and
 are runnable without astroquery/astropy; the astroquery/astropy calls in
 `query.py`/`astrometry.py` stay function-local (lazy). Preserve that separation.
+The store modules need pyarrow (and duckdb for `catalog_query`); they are not
+re-exported from the package root and `cli.py` imports them lazily, so the plain
+CSV pipeline runs without them.
+
+**Store invariants** (tested in `tests/test_storage.py`): `source_id` never goes
+through float64 (ids exceed 2⁵³); a dataset is immutable once `manifest.json`
+says `complete` — rebuilds get a new `dataset_id`; partition files are written as
+`.tmp` then renamed and the manifest last; `open_catalog` refuses anything else.
+Schema changes bump `schema.SCHEMA_VERSION` and get a `DECISIONS.md` entry.
 
 ### Pipeline flow
 

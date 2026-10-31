@@ -129,3 +129,31 @@ naukowego pomiaru albo większej skali.
   zastępujemy plikami z repo.
 - **Sesje Claude Code** dopisują do `DECISIONS.md` w tym samym PR, w którym
   zmieniają kod, jeśli decyzja wychodzi poza zadanie.
+
+## 7. Otwarte punkty
+
+Sprawy świadomie odłożone. Każda ma warunek, przy którym wraca; zamknięcie
+punktu to wpis w `DECISIONS.md`.
+
+### OP-1 · Wybór źródła pobierania danych Gai
+**Stan (31.10.2026):** TAP z AIP główny (D-012), ESA zapasowy, HATS z LSDB
+trzeci zapas (D-017). Kandydaci i to, co o nich wiemy:
+
+| Źródło | Za | Przeciw |
+|---|---|---|
+| TAP AIP (`gaia.aip.de/tap`) | filtr po stronie serwera (~2,5 GB dla G < 15), anonimowo, `QUEUE=2h` | zależność od jednego serwisu i jego limitów |
+| TAP ESA (`gea.esac.esa.int`) | źródło oficjalne, pierwsze z DR4 | 31.10 HTTP 500 i timeout; wyłączenie 25.11–2.12 |
+| HATS / LSDB (`linea.data.lsdb.io/hats/gaia_dr3`), też MAST na AWS | statyczne pliki, wznawialne, układ HEALPix jak nasz magazyn | brak filtru po G: ~190 GB transferu dla naszych 21 kolumn |
+| Hugging Face (`astro-legacy-archive/gaia-dr3-source`) | proste pobieranie, mirrory | 31.10 w trakcie wgrywania; format ECSV, bez zysku nad HATS |
+
+**Wraca, gdy:**
+- przechodzimy na G < 19 (~1,9·10⁸ wierszy, ~10% całości) — wtedy różnica
+  TAP vs HATS maleje, a stabilność statycznych plików zyskuje na wadze;
+- przechodzimy na DR4 (M6) — sprawdzić, gdzie i kiedy DR4 będzie dostępne
+  (ESA, AIP, HATS) i czy kolumny się zgadzają;
+- AIP zawiedzie przy pobieraniu M2 (limity, awarie, zmiana zasad dostępu);
+- mirror na Hugging Face zostanie ukończony albo pojawi się wersja Parquet
+  z filtrem po jasności.
+
+**Do zrobienia przy powrocie:** pomiar czasu i transferu na jednym kafelku
+z każdego źródła; zgodność wyniku (te same `source_id`, wartości bit w bit).

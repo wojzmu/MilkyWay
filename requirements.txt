@@ -1,0 +1,10 @@
+astroquery
+astropy
+numpy
+pandas
+matplotlib
+adjustText
+pyarrow>=15
+duckdb>=1.0
+astropy-healpix
+pytest

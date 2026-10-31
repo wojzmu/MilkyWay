@@ -11,6 +11,26 @@ decyzja — dopisz.
 
 ---
 
+## D-016 · 2026-10-31 · Uproszczona integralność magazynu w 1.0
+**Decyzja:** manifest trzyma `row_counts` i SHA-256 bajtów każdego pliku
+Parquet; pełny `canonical_hash` (S1 dec. 7, niezależny od wersji Arrow)
+odkładamy do przejścia na DR4.
+**Dlaczego:** w 1.0 budujemy i czytamy na jednej maszynie; hash plików
+wykrywa podmianę i niekompletność za ułamek kosztu (~15 min zamiast ~0,5 d).
+Kosztem jest to, że hash zmieni się po aktualizacji pyarrow.
+**Źródło:** rozmowa w sesji Claude Code (plan M1), 31.10.2026.
+
+## D-015 · 2026-10-31 · Schemat magazynu 1.0 (wersja 1)
+**Decyzja:** `milkyway/schema.py` to podzbiór schematu v2 z S1: obecne
+kolumny katalogu plus `source_id` (int64), `hip` (int32), `healpix`
+(int64, NESTED poz. 12). Odstępstwa od v4: `star_id` zostaje w formacie
+pipeline'u (`Gaia DR3 <id>` / `HIP <n>`, nie `gdr3:<id>`); `dist_pc` jest
+zapisywaną kolumną do M3 (potem alias `r_med_pc`); partycje poz. 2 (D-011).
+Kolumny M2/M3 dochodzą z podbiciem `SCHEMA_VERSION`.
+**Dlaczego:** viewer i stare CSV używają obecnego `star_id`; zmiana formatu
+nic nie daje w 1.0, a psuje porównanie z katalogiem referencyjnym.
+**Źródło:** zadanie T1 planu M1, 31.10.2026.
+
 ## D-014 · 2026-10-31 · Fit wysokości skali w 1.0 tylko dla M_G ≤ 6
 **Decyzja:** okno CMD orientacyjnego fitu (M5) to karły ciągu głównego
 z M_G ≤ 6 (G i wczesne K), nie całe G/K.
@@ -25,7 +45,7 @@ zaniżałyby h.
 pipeline'em bez limitu G i z cięciami starego (`parallax_over_error > 10`,
 `ruwe < 1.4`, `parallax > 1000/60`); `g_max` musi więc dać się wyłączyć.
 Wzorcem jest zamrożona kopia `nearby_stars_60.0pc.csv` w `data/reference/`
-(SHA-256 dopisany przy jej utworzeniu).
+(SHA-256 507cd00f717edb4a52e57d231e5d922750de6b9e428bb8a70daf6174cb429c15, 61 516 wierszy; kopia z 31.10.2026).
 **Dlaczego:** stary katalog zawiera słabe karły M z G > 15 i stosuje cięcia
 jakości, których selekcja 1.0 (D-008) nie ma; bez wyrównania test różniłby
 się z konstrukcji.

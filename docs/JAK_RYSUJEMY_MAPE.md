@@ -41,9 +41,11 @@ punktów, bez przeliczania.
 ## 3. Format binarny
 
 Zamiast tekstu zapisujemy liczby tak, jak trzyma je pamięć komputera
-(`points.bin`, 25,6 MB). Na jedną gwiazdę przypada **17 bajtów**:
+(`points.bin`, 16,6 MB). Na jedną gwiazdę przypada **11 bajtów**:
 
-- 12 bajtów na położenie x, y, z w parsekach (3 liczby float32),
+- 6 bajtów na położenie x, y, z (3 liczby całkowite int16; jednostką jest
+  1250/32767 ≈ 0,038 pc, ok. 7 800 au; przy skali mapy różnica
+  niewidoczna),
 - 3 bajty na kolor R, G, B,
 - 1 bajt na **niepewność odległości** (kod U, rozdział 4),
 - 1 bajt na klasę gwiazdy (ciąg główny, olbrzym…).
@@ -97,7 +99,23 @@ To jest efekt, który chcieliśmy pokazać: dysk ma grubość kilkuset
 parseków, więc na 1,25 kpc jego płaskość już widać. W M5 zmierzymy ją
 liczbowo (wysokość skali).
 
-## 7. Skutki uboczne, o których trzeba pamiętać
+## 7. Mapa „disc tracers”: jak naprawdę zobaczyć dysk
+
+Na pełnej mapie gęstość punktów zależy bardziej od naszego limitu jasności
+niż od kształtu Galaktyki (rozdział 8). Dlatego jest druga mapa: **tylko
+gwiazdy jasne z natury**, o jasności absolutnej M_G ≤ 2 (olbrzymy, gwiazdy
+typu A i F). Z 1250 pc taka gwiazda ma jasność obserwowaną najwyżej
+2 + 10,5 = 12,5 mag, więc mieści się w limicie G < 15 nawet przy 2 mag
+osłabienia przez pył. Widzimy więc **wszystkie** takie gwiazdy w całej
+kuli, a nie tylko te bliskie.
+
+Jest ich **913 280** i bierzemy wszystkie, bez przerzedzania (10 MB).
+W widoku z boku dysk jest wyraźnie cieńszy niż na pełnej mapie. W liczbach
+(walec o promieniu 800 pc wokół Słońca): w pierwszych 100 pc nad lub pod
+płaszczyzną jest 15 771 takich gwiazd, a w przedziale 700–800 pc tylko 917,
+czyli 17 razy mniej.
+
+## 8. Skutki uboczne, o których trzeba pamiętać
 
 - **Jasny środek to częściowo złudzenie.** Na sześcian parseka przypada
   w pobliżu Słońca (do 250 pc) **19 razy** więcej narysowanych gwiazd niż
@@ -110,17 +128,25 @@ liczbowo (wysokość skali).
   poprawione o pył (też M5).
 - **Diagram HR** jest wyłączony dla tej mapy. Pełne dane do niego są
   w `details.bin`, ale wymagałyby pobrania 36 MB. Może wrócić później.
-- **Strona publiczna.** Pliki mapy (~60 MB) są generowane lokalnie i nie
+- **Strona publiczna.** Pliki mapy (~50 MB) są generowane lokalnie i nie
   trafiają do gita, więc strona na GitHub Pages ich na razie nie pokazuje.
+  Plan: hosting na Hugging Face, a w aplikacji pełny adres URL (D-023).
+- **„Promienie” w widoku z góry** to głównie cienie obłoków pyłu: obłok
+  100–200 pc od nas zasłania klin aż do brzegu mapy. W płaszczyźnie dysku
+  (|b| < 5°, 600–1200 pc) w kierunku centrum Galaktyki jest ok. 130 tys.
+  gwiazd, a w kierunku obłoku Aquila Rift (l ≈ 15–45°) tylko 61–72 tys.
+  Mapa pyłu w M5 pokaże obłoki na początku tych klinów.
 
-## 8. Słowniczek
+## 9. Słowniczek
 
 - **Przerzedzenie (thinning):** zostawienie losowej części punktów
   z zachowaniem proporcji.
 - **Hasz:** liczba wyliczona z numeru gwiazdy, która wygląda losowo, ale
   dla tego samego numeru jest zawsze taka sama.
-- **float32:** liczba zmiennoprzecinkowa w 4 bajtach; dokładność ~7 cyfr,
-  czyli dla 1000 pc ok. 0,0001 pc.
+- **int16:** liczba całkowita w 2 bajtach (od −32 767 do 32 767); tu
+  położenie w jednostkach ~0,038 pc.
+- **Jasność absolutna M_G:** jak jasna byłaby gwiazda z odległości 10 pc;
+  im mniejsza liczba, tym jaśniejsza gwiazda (Słońce: M_G ≈ 4,7).
 - **HTTP Range:** prośba do serwera o fragment pliku zamiast całości.
 - **Shader:** mały program uruchamiany na karcie graficznej dla każdego
   punktu z osobna, równolegle.

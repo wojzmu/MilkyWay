@@ -68,10 +68,12 @@ def _export_csv(dataset, out_path):
     print(f"Wrote {out_path} ({table.num_rows} stars)")
 
 
-def _export_viewer(dataset, out_dir):
+def _export_viewer(dataset, out_dir, abs_mag_max=None, target=None):
     """Binary export for the web viewer (M4): points.bin, details.bin, index.json."""
     from . import viewer_export
-    idx = viewer_export.export_viewer(dataset, out_dir)
+    idx = viewer_export.export_viewer(
+        dataset, out_dir, abs_mag_max=abs_mag_max,
+        target=viewer_export.DEFAULT_TARGET if target is None else (target or None))
     s = idx["sampling"]
     print(f"Wrote {out_dir}: {idx['n']} stars of {s['n_eligible']} within "
           f"{idx['selection']['dist_pc_max']} pc (f = {s['f']:.4f}, "
@@ -159,6 +161,12 @@ def main(argv=None):
                         help="with --dataset: write the binary viewer export "
                              "(points.bin, details.bin, index.json; stars within "
                              "1250 pc thinned to ~1.5 million) and exit")
+    parser.add_argument("--abs-mag-max", type=float, default=None, metavar="M",
+                        help="with --export-viewer: keep only stars with M_G <= M "
+                             "(e.g. 2: disc tracers seen through the whole volume)")
+    parser.add_argument("--viewer-target", type=int, default=None, metavar="N",
+                        help="with --export-viewer: thin to ~N stars (default 1500000; "
+                             "0 = export every eligible star)")
     parser.add_argument("--data-dir", default=os.path.join(PROJECT_ROOT, "data"),
                         metavar="DIR", help="where datasets live (default: <project>/data)")
     parser.add_argument("--fetch", action="store_true",
@@ -222,6 +230,8 @@ def main(argv=None):
         parser.error("--dataset-id requires --to-parquet")
     if args.export_csv and not args.dataset:
         parser.error("--export-csv requires --dataset")
+    if (args.abs_mag_max is not None or args.viewer_target is not None)             and not args.export_viewer:
+        parser.error("--abs-mag-max and --viewer-target require --export-viewer")
     if args.export_viewer and (not args.dataset or args.export_csv or args.plot_only):
         parser.error("--export-viewer requires --dataset and excludes --export-csv "
                      "and --plot-only")
@@ -246,7 +256,8 @@ def main(argv=None):
         _to_parquet(args.to_parquet, args.dataset_id, args.data_dir)
         return
     if args.export_viewer:
-        _export_viewer(_dataset_dir(args.dataset, args.data_dir), args.export_viewer)
+        _export_viewer(_dataset_dir(args.dataset, args.data_dir), args.export_viewer,
+                       args.abs_mag_max, args.viewer_target)
         return
     if args.export_csv:
         _export_csv(_dataset_dir(args.dataset, args.data_dir), args.export_csv)

@@ -11,6 +11,26 @@ decyzja — dopisz.
 
 ---
 
+## D-023 · 2026-10-31 · Mapa „disc tracers” (M_G ≤ 2), format v2, hosting
+**Decyzja:**
+- Drugi eksport viewera: wszystkie gwiazdy w 1,25 kpc z M_G ≤ 2
+  (913 280, bez przerzedzania; `--abs-mag-max 2 --viewer-target 0`).
+- `points.bin` w wersji 2: pozycje int16 w jednostkach
+  `position_scale_pc` = 1250/32767 ≈ 0,038 pc (11 B/gwiazdę zamiast 17;
+  pełna mapa 25,6 → 16,6 MB). Viewer czyta v1 i v2.
+- Wpis w `datasets.json` może mieć pełny URL (inny host). Kandydat na
+  hosting: repozytorium dataset na Hugging Face (sprawdzone 31.10: CORS
+  i Range 206 przez przekierowanie na CDN). Odrzucone: GitHub Releases
+  (brak CORS, sprawdzone), Git LFS na Pages (Pages nie serwuje LFS),
+  Google Drive (zwykłe linki bez CORS; Drive API wymaga klucza w kodzie
+  strony i ma limity pobrań). Konto i wgranie: użytkownik.
+**Dlaczego:** w pełnej mapie gęstość wyznacza limit G < 15 (przy Słońcu
+19× gęściej niż przy 1–1,25 kpc), co przykrywa kształt dysku. Gwiazdy
+z M_G ≤ 2 są widoczne w całej objętości (μ = 10,5 przy 1250 pc, zapas na
+pył), więc ich rozkład pokazuje dysk: w walcu R < 800 pc liczba na 100 pc
+wysokości spada z 15 771 do 917 do |z| = 800 pc.
+**Źródło:** rozmowa w sesji Claude Code, 31.10.2026.
+
 ## D-022 · 2026-10-31 · ESA i AIP zwracają te same dane (M2 T6)
 **Decyzja:** kafelki z AIP traktujemy jako równoważne archiwum ESA; ESA
 pozostaje zapasem bez potrzeby osobnego pobrania (OP-1: punkt „zgodność

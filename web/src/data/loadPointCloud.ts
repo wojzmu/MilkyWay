@@ -6,7 +6,9 @@ export interface PointCloudIndex {
   n: number;
   class_codes: string[];
   dataset_id?: string;
-  selection?: { dist_pc_max?: number };
+  selection?: { dist_pc_max?: number; abs_mag_max?: number | null };
+  /** Version 2: parsec per int16 position unit. */
+  position_scale_pc?: number;
   [key: string]: unknown;
 }
 
@@ -73,7 +75,11 @@ export async function loadPointCloud(
   indexFile: string,
   onProgress?: (text: string) => void,
 ): Promise<PointCloud> {
-  const indexUrl = `${import.meta.env.BASE_URL}${indexFile}`;
+  // A manifest entry may point at another host (absolute URL, e.g. a data repo);
+  // otherwise the file is served next to the app from public/.
+  const indexUrl = /^https?:\/\//.test(indexFile)
+    ? indexFile
+    : `${import.meta.env.BASE_URL}${indexFile}`;
   const res = await fetch(indexUrl);
   if (!res.ok) throw new Error(`${indexUrl}: ${res.status} ${res.statusText}`);
   const index = (await res.json()) as PointCloudIndex;
@@ -93,15 +99,25 @@ export async function loadPointCloud(
   );
   if (magic !== "MWPT") throw new Error(`points.bin: bad magic "${magic}"`);
   const version = dv.getUint16(4, true);
-  if (version !== 1) throw new Error(`points.bin: unsupported version ${version}`);
+  if (version !== 1 && version !== 2) {
+    throw new Error(`points.bin: unsupported version ${version}`);
+  }
   const flags = dv.getUint16(6, true);
   if (!(flags & 1)) throw new Error("points.bin: class block missing");
   const n = dv.getUint32(8, true);
   if (n !== index.n) {
     throw new Error(`points.bin: N=${n} does not match index.json n=${index.n}`);
   }
-  const body = HEADER + 17 * n;
+  // v1: float32 xyz (12 B/star); v2: int16 xyz (6 B/star) padded to 4 bytes,
+  // scaled by index.position_scale_pc.
+  const posBytes = version === 1 ? 12 * n : 6 * n + ((4 - ((6 * n) % 4)) % 4);
+  const rgbuAt = HEADER + posBytes;
+  const body = rgbuAt + 5 * n;
   const expected = body + ((4 - (body % 4)) % 4);
+  const scale = index.position_scale_pc;
+  if (version === 2 && !(typeof scale === "number" && scale > 0)) {
+    throw new Error(`${indexUrl}: version 2 needs position_scale_pc`);
+  }
   if (buf.byteLength !== expected) {
     throw new Error(
       `points.bin: expected ${expected} bytes, got ${buf.byteLength}`,
@@ -109,15 +125,19 @@ export async function loadPointCloud(
   }
 
   // Galactic (x, y, z) -> screen (x, z, y), like StarField3D.
-  const src = new Float32Array(buf, HEADER, 3 * n);
+  const src =
+    version === 1
+      ? new Float32Array(buf, HEADER, 3 * n)
+      : new Int16Array(buf, HEADER, 3 * n);
+  const k = version === 1 ? 1 : (scale as number);
   const positions = new Float32Array(3 * n);
   for (let i = 0; i < n; i++) {
-    positions[3 * i] = src[3 * i];
-    positions[3 * i + 1] = src[3 * i + 2];
-    positions[3 * i + 2] = src[3 * i + 1];
+    positions[3 * i] = src[3 * i] * k;
+    positions[3 * i + 1] = src[3 * i + 2] * k;
+    positions[3 * i + 2] = src[3 * i + 1] * k;
   }
-  const rgbu = new Uint8Array(buf, HEADER + 12 * n, 4 * n);
-  const classes = new Uint8Array(buf, HEADER + 16 * n, n);
+  const rgbu = new Uint8Array(buf, rgbuAt, 4 * n);
+  const classes = new Uint8Array(buf, rgbuAt + 4 * n, n);
   return {
     index,
     n,
@@ -134,7 +154,7 @@ const fullDetails = new Map<string, ArrayBuffer>();
 function parseRecord(dv: DataView, off: number): PointDetail {
   const id = dv.getBigInt64(off, true);
   return {
-    label: id > 0n ? `Gaia DR3 ${id}` : `HIP ${-id}`,
+    label: id >= 0n ? `Gaia DR3 ${id}` : `HIP ${-id}`,
     rLo: dv.getFloat32(off + 8, true),
     rHi: dv.getFloat32(off + 12, true),
     gMag: dv.getFloat32(off + 16, true),

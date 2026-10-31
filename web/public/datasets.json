@@ -21,6 +21,12 @@
       "format": "bin",
       "label": "Galactic disc — 1.25 kpc (1.5 M stars)",
       "description": "Gaia DR3 G < 15 within 1250 pc, zero-point-corrected distances, thinned to ~1.5 million stars."
+    },
+    {
+      "file": "map_tracers_1250pc/index.json",
+      "format": "bin",
+      "label": "Galactic disc — bright tracers (M_G ≤ 2, 0.9 M stars)",
+      "description": "Every Gaia DR3 star within 1250 pc with absolute magnitude M_G ≤ 2: bright enough to be seen through the whole volume at G < 15, so the density shows the disc rather than the survey's magnitude limit."
     }
   ]
 }

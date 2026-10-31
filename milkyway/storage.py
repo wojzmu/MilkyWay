@@ -41,7 +41,7 @@ def partition_path(part_hpx):
 
 def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
                   level=schema.PARTITION_LEVEL, row_group_size=ROW_GROUP_SIZE,
-                  expected_partitions=None):
+                  expected_partitions=None, provenance=None):
     """Write `tables` (an iterable of schema-conforming pa.Tables) as a dataset.
 
     Streaming rule: every partition must arrive whole inside a single input table
@@ -56,7 +56,9 @@ def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
 
     `selection` (the cuts that define the sample, e.g. parallax floor and `g_max`,
     None when unset) and `source` (where the rows came from) are stored verbatim in
-    the manifest so the dataset can be rebuilt from it. Returns the manifest dict.
+    the manifest so the dataset can be rebuilt from it. `provenance` (optional dict:
+    methods, package versions, frame parameters, build counts) is stored as well.
+    Returns the manifest dict.
     """
     root = Path(dataset_dir)
     expected = None if expected_partitions is None else sorted({int(k) for k in expected_partitions})
@@ -103,6 +105,7 @@ def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
         "columns": list(schema.COLUMNS),
         "selection": selection,
         "source": source,
+        "provenance": provenance,
         "storage": {
             "healpix_level": schema.HEALPIX_LEVEL,
             "partition_level": level,

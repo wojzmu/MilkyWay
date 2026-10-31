@@ -72,6 +72,7 @@ def test_float32_overflow_becomes_inf(valid, sample_csv_path):
     df = pd.read_csv(sample_csv_path, dtype={"star_id": str}, keep_default_na=False,
                      na_values=[""])
     df["source_id"], df["hip"], df["healpix"] = csv_io._derive_ids(df)
+    csv_io._fill_v2_columns(df)
     df["pmra"] = df["pmra"].astype("float64")
     df.loc[0, "pmra"] = 1e40
     _fails(schema.conform(df), "pmra: .*infinite")
@@ -145,6 +146,7 @@ def test_conform_uint8_overflow(sample_csv_path):
     df = pd.read_csv(sample_csv_path, dtype={"star_id": str}, keep_default_na=False,
                      na_values=[""])
     df["source_id"], df["hip"], df["healpix"] = csv_io._derive_ids(df)
+    csv_io._fill_v2_columns(df)
     df["rgb_r"] = pd.array([300] + [1] * (len(df) - 1), dtype="Int64")
     with pytest.raises(SchemaError, match="rgb_r"):
         schema.conform(df)

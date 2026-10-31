@@ -100,6 +100,23 @@ def _fetch(args, tile_ids):
     return 1 if summary["tiles_failed"] else 0
 
 
+def _build(args):
+    """Build the schema-v2 catalogue from a complete raw fetch (M3)."""
+    from . import build, raw
+    fetch_id = args.fetch_id or raw.DEFAULT_FETCH_ID
+    raw_dir = os.path.join(args.data_dir, "raw", raw.RELEASE)
+    dataset_id = args.dataset_id or f"{fetch_id}_v{_schema_version()}"
+    out = os.path.join(args.data_dir, dataset_id)
+    build.build_catalogue(os.path.join(raw_dir, fetch_id), os.path.join(raw_dir, "aux"),
+                          out, dataset_id=dataset_id)
+    return 0
+
+
+def _schema_version():
+    from . import schema
+    return schema.SCHEMA_VERSION
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Nearby-star pipeline and plotter.")
     parser.add_argument("--plot-only", action="store_true",
@@ -140,11 +157,23 @@ def main(argv=None):
                              "<data-dir>/raw/dr3/aux/, then exit")
     parser.add_argument("--fetch-id", default=None, metavar="ID",
                         help="fetch id (default: dr3_g15_p0.5)")
+    parser.add_argument("--build", action="store_true",
+                        help="build the catalogue dataset from a complete raw fetch "
+                             "(--fetch-id) and the Hipparcos aux tables into "
+                             "<data-dir>/<dataset-id> (default id: <fetch-id>_v<schema>)")
     parser.add_argument("--max-jobs", type=int, default=2, metavar="N",
                         help="concurrent archive jobs for --fetch, 1..4 (default 2)")
     args = parser.parse_args(argv)
 
     fetching = args.fetch or args.fetch_aux or args.fetch_tiles is not None
+    if args.build:
+        if fetching or args.to_parquet or args.dataset or args.plot_only or args.export_csv:
+            parser.error("--build cannot be combined with fetching, --to-parquet, "
+                         "--dataset, --export-csv or --plot-only")
+        for value in (args.fetch_id, args.dataset_id):
+            if value is not None and (msg := _id_problem(value)):
+                parser.error(msg)
+        return _build(args)
     if fetching:
         if args.to_parquet or args.dataset or args.plot_only or args.export_csv:
             parser.error("--fetch/--fetch-tiles/--fetch-aux cannot be combined with "

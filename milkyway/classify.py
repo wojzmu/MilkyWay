@@ -97,6 +97,26 @@ def classify_from_hr(abs_g, bp_rp, teff_color=np.nan):
         return "Subgiant"
     return "Main sequence"
 
+def classify_from_hr_array(abs_g, bp_rp, teff_color=None):
+    """Vectorised classify_from_hr(): same rules in the same order, object array out."""
+    abs_g = np.asarray(abs_g, dtype=float)
+    bp_rp = np.asarray(bp_rp, dtype=float)
+    teff = (np.full(abs_g.shape, np.nan) if teff_color is None
+            else np.asarray(teff_color, dtype=float))
+    delta = abs_g - np.interp(bp_rp, _MS_BPRP, _MS_ABSG)
+    with np.errstate(invalid="ignore"):
+        cond = [~(np.isfinite(abs_g) & np.isfinite(bp_rp)),
+                np.isfinite(teff) & (teff < 2300),
+                (bp_rp < 1.8) & (abs_g > 2.7 * bp_rp + 8.0),
+                abs_g < -3.5,
+                (delta < -2.5) & (bp_rp > 1.0),
+                delta < -2.5,
+                delta < -1.3]
+    labels = ["Unknown", "Brown dwarf", "White dwarf", "Supergiant", "Red giant",
+              "Giant", "Subgiant"]
+    return np.select(cond, labels, default="Main sequence").astype(object)
+
+
 def classify_stars(df):
     """Per-row evolutionary category for a merged catalogue: SIMBAD spectral
     type first, colour-magnitude position as fallback. Returns a list aligned
@@ -106,6 +126,8 @@ def classify_stars(df):
     bp_rp = df["bp_rp"].to_numpy(float)
     teff = (df["teff_color"].to_numpy(float)
             if "teff_color" in df.columns else np.full(len(df), np.nan))
+    if not has_sp or df["sp_type"].isna().all():
+        return list(classify_from_hr_array(abs_g, bp_rp, teff))
     out = []
     for i in range(len(df)):
         cat = classify_from_sptype(df["sp_type"].iloc[i]) if has_sp else None

@@ -4,12 +4,15 @@ One `pyarrow.Schema` is the single source of truth for column names, types and
 nullability; the store (`storage.py`), the CSV adapter and the tests all read it
 from here. It is the M1 subset of plan v4's schema v2 (docs/plan-v4/S1, dec. 8):
 today's catalogue columns plus the identifiers `source_id`, `hip` and `healpix`.
-M2 (download) and M3 (distances) add columns and bump `SCHEMA_VERSION`.
+Version 2 (M3, D-020) adds the parallax layer (`parallax_error`, `parallax_zp_mas`,
+`zp_origin`, `ruwe`), distance quantiles and flags (`r_lo_pc`, `r_hi_pc`,
+`dist_origin`, `dist_flag`) and Galactocentric positions (`xgc_pc`...).
 
 Deliberate departures from plan v4 (see docs/DECISIONS.md):
 - `star_id` keeps the current pipeline format, "Gaia DR3 <source_id>" /
   "HIP <hip>", not v4's "gdr3:<id>" (D-015);
-- `dist_pc` is a stored column until M3 introduces `r_med_pc` (D-015).
+- `dist_pc` is the median distance; plan v4's `r_med_pc` is not stored
+  separately, so the legacy CSV and the viewer keep working (D-020).
 
 pyarrow is imported at module level; this module is not re-exported from the
 package root, so `MilkyWay.py` and the colour/photometry math still run without it.
@@ -17,7 +20,7 @@ package root, so `MilkyWay.py` and the colour/photometry math still run without 
 import numpy as np
 import pyarrow as pa
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SCHEMA_METADATA_KEY = b"milkyway.schema_version"
 
 # star_id prefixes. The Gaia prefix names the data release on purpose: source_ids
@@ -42,6 +45,12 @@ ENUMS = {
     # Labels produced by classify.classify_stars().
     "star_class": ("Main sequence", "White dwarf", "Subgiant", "Giant",
                    "Red giant", "Supergiant", "Subdwarf", "Brown dwarf", "Unknown"),
+    # parallax.corrected_parallax(); "none" = no zero-point applied (Hipparcos,
+    # legacy CSV rows).
+    "zp_origin": ("lindegren2021", "lindegren2021_clamped", "global_fallback", "none"),
+    "dist_origin": ("parallax_inversion",),
+    # distance.inversion_distances(); "no_error" = parallax error unknown (legacy CSV).
+    "dist_flag": ("ok", "low_snr", "no_error"),
 }
 
 _f64, _f32, _str = pa.float64(), pa.float32(), pa.string()
@@ -58,8 +67,16 @@ _FIELDS = [
     # astrometry
     ("ra",                _f64,         False),
     ("dec",               _f64,         False),
-    ("parallax_mas",      _f64,         False),
-    ("dist_pc",           _f32,         False),
+    ("parallax_mas",      _f64,         False),  # as published, before zero-point
+    ("parallax_error",    _f32,         True),
+    ("parallax_zp_mas",   _f32,         True),   # corrected parallax = parallax_mas - this
+    ("zp_origin",         _str,         False),
+    ("ruwe",              _f32,         True),
+    ("dist_pc",           _f32,         False),  # median distance (D-020)
+    ("r_lo_pc",           _f32,         True),   # 15.87 % quantile
+    ("r_hi_pc",           _f32,         True),   # 84.13 %; null if unbounded
+    ("dist_origin",       _str,         False),
+    ("dist_flag",         _str,         False),
     ("pmra",              _f32,         True),
     ("pmdec",             _f32,         True),
     ("radial_velocity",   _f32,         True),
@@ -79,6 +96,9 @@ _FIELDS = [
     ("x_pc",              _f32,         False),
     ("y_pc",              _f32,         False),
     ("z_pc",              _f32,         False),
+    ("xgc_pc",            _f32,         False),  # Galactocentric, astropy preset v4.0
+    ("ygc_pc",            _f32,         False),
+    ("zgc_pc",            _f32,         False),
     # display colour (teff_color is display-only, never science)
     ("teff_color",        _f32,         True),
     ("rgb_r",             pa.uint8(),   True),
@@ -141,7 +161,8 @@ def validate(table):
     Checks: exact schema (names, order, types); no nulls (or NaN) in non-nullable
     fields; enum membership; unique star_id/source_id/hip; star_id agrees with
     source_id/hip and source_catalogue; no +-inf in float columns; healpix in range,
-    == source_id >> 35 for Gaia rows and == the level-12 pixel of (ra, dec) for Hipparcos.
+    == source_id >> 35 for Gaia rows and == the level-12 pixel of (ra, dec) for Hipparcos;
+    dist_pc > 0 and r_lo_pc <= dist_pc <= r_hi_pc where the quantiles are present.
     """
     import pyarrow.compute as pc
 
@@ -171,6 +192,14 @@ def validate(table):
             if len(bad):
                 problems.append(f"{field.name}: values outside enum "
                                 f"{sorted(set(bad.drop_null().to_pylist()))[:5]}")
+
+    d = table["dist_pc"]
+    if len(table) and not pc.all(pc.greater(d, 0)).as_py():
+        problems.append("dist_pc: non-positive values")
+    for name, op in (("r_lo_pc", pc.less_equal), ("r_hi_pc", pc.greater_equal)):
+        ok = op(table[name], d)                       # null where the quantile is null
+        if pc.any(pc.invert(ok)).as_py():
+            problems.append(f"{name}: on the wrong side of dist_pc on some rows")
 
     for name in ("star_id", "source_id", "hip"):
         col = table[name].drop_null()

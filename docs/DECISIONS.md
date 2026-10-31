@@ -11,6 +11,39 @@ decyzja — dopisz.
 
 ---
 
+## D-020 · 2026-10-31 · Odległości i katalog M3 (schemat v2)
+**Decyzja:**
+- **Zero-point:** `lindegren2021_clamped` wg v4 S2 D5 (pakiet
+  `gaiadr3-zeropoint` 0.1.0, przycięcie do wnętrza zakresu z flagą,
+  fallback −0,017 mas). ϖ_c = ϖ − zp; `parallax_mas` zostaje surowa.
+- **Odległość:** inwersja ϖ_c dla **wszystkich** wierszy; `dist_pc` =
+  1000/ϖ_c (mediana), `r_lo_pc`/`r_hi_pc` = 1000/(ϖ_c ± σ) (kwantyle
+  15,87/84,13 %, `r_hi_pc` puste, gdy ϖ_c − σ ≤ 0). ϖ_c/σ ≤ 5 →
+  `dist_flag = low_snr`, wiersz zostaje. EDSD (v4 S2 D3) odkładamy;
+  odstępstwo od v4 D4 (tam f > 0,1 → `inversion_invalid`).
+- **Schemat v2:** dochodzą `parallax_error`, `parallax_zp_mas`, `zp_origin`,
+  `ruwe`, `r_lo_pc`, `r_hi_pc`, `dist_origin`, `dist_flag`,
+  `xgc/ygc/zgc_pc` (preset `v4.0`). `r_med_pc` nie jest osobną kolumną —
+  `dist_pc` jest medianą (zastępuje zapowiedź aliasu z D-015). `abs_g` z ϖ_c.
+- **Zasięg:** katalog trzyma cały pobrany zbiór (23 373 955 wierszy);
+  cięcie do 1,25 kpc robi eksport (M4). Cięć jakości nie stosujemy.
+- **Hipparcos:** wiersz HIP wchodzi tylko bez odpowiednika 5p/6p. Najpierw
+  `hipparcos2_best_neighbour` (97 984 gwiazd → Gaia), potem dla 19 087
+  pozostałych propagacja epoki i dopasowanie pozycyjne do wszystkich
+  kafelków, **2″** (nie 1″ jak v4 D10) i |ΔG| < 1 mag: 16 989 dopasowanych,
+  2 098 zostaje (1 013 z `low_snr`). Wiersze Gai dostają `hip` z
+  `best_neighbour` (96 477). Katalog HIP to `public.hipparcos` (ESA 1997),
+  jak w starym pipeline'ie, nie Hipparcos-2.
+**Dlaczego:** pomiar na pobranych danych 31.10: ϖ/σ > 5 dla 99,2%
+wierszy, więc EDSD zmienia obraz tylko dla ~0,8%. Samo `best_neighbour`
+dałoby ~17 tys. zdublowanych gwiazd. Próbka 40 zachowanych HIP (G ≥ 6,
+stożki w AIP): 36 ma w Gai tylko rozwiązanie 2p (Hipparcos jest jedynym
+źródłem paralaksy), 2 miały odpowiednik 5p w 1,17–1,26″ (stąd 2″), 1 to
+gwiazda Gai z ϖ = 0,28 mas spoza selekcji — takich duplikatów (~2,5%)
+offline nie wykryjemy. Skutek korekty: mediana ϖ rośnie o 3,2%, w
+1,25 kpc jest 17,20 mln gwiazd zamiast 16,44 mln przy surowej ϖ.
+**Źródło:** plan M3 i odpowiedzi użytkownika w sesji Claude Code, 31.10.2026.
+
 ## D-019 · 2026-10-31 · Kształt pobrania M2
 **Decyzja:**
 - Kafelek = piksel HEALPix poz. 2 (`source_id` od `k << 55` do

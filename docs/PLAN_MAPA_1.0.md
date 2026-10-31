@@ -31,7 +31,7 @@ szacunek, nie pomiar.
 | Funkcja selekcji `parallax > 0.5 AND phot_g_mean_mag < g_max` | S3, U2 | `g_max = 15` na start (parametr); G < 19 później |
 | Pobieracz uproszczony: kafelki po `source_id`, joby async, pomijanie gotowych plików | S3 | Bez pełnego klienta UWS, bez atrapy TAP |
 | Korekta zero-pointu (`gaiadr3-zeropoint`, przycięcie do zakresu z flagą) | S2 | Bez wariantów systematyki |
-| Odległość: inwersja z korektą dla ϖ/σ > 5, `dist_origin`, `r_lo/r_med/r_hi` | S2 | EDSD opcjonalnie, tylko do viewera |
+| Odległość: inwersja ϖ_c dla wszystkich, flaga `low_snr` dla ϖ/σ ≤ 5, `dist_origin`, `r_lo/r_med/r_hi` (D-020) | S2 | EDSD opcjonalnie, tylko do viewera |
 | Współrzędne galaktocentryczne, preset astropy `v4.0` | S2, U11 | Bez zmian |
 | Mapa pyłu Edenhofer 2024 (średnia) do odczerwienienia koloru | S5 | Bez próbek posterioru |
 | Eksport binarny dla viewera, przerzedzenie, przezroczystość wg niepewności | S1 | Jeden plik, bez kafelków x/y/z na start |

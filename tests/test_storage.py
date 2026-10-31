@@ -152,7 +152,7 @@ def test_file_schema_and_metadata(case):
         s = pq.read_schema(f)
         assert s.equals(schema.CATALOGUE_SCHEMA, check_metadata=False)
         # pyarrow does round-trip the schema metadata into the Parquet footer.
-        assert s.metadata[schema.SCHEMA_METADATA_KEY] == b"1"
+        assert s.metadata[schema.SCHEMA_METADATA_KEY] == str(schema.SCHEMA_VERSION).encode()
 
 
 # ------------------------------------------------------- 6. values

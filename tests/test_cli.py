@@ -75,3 +75,11 @@ def test_dataset_dir_resolution(tmp_path, monkeypatch):
     assert cli._dataset_dir(os.path.join(".", "t"), "D") == os.path.join(".", "t")
     assert cli._dataset_dir("sub/t", "D") == "sub/t"
     assert cli._dataset_dir(str(tmp_path / "t"), "D") == str(tmp_path / "t")
+
+
+@pytest.mark.parametrize("argv", [["--build", "--min-mass", "0.5"], ["--build", "--max-dist", "30"],
+                                  ["--build", "--csv", "x.csv"], ["--build", "--plot-only"],
+                                  ["--legacy-cuts"]])
+def test_build_rejects_unused_flags(argv):
+    with pytest.raises(SystemExit):
+        cli.main(argv)

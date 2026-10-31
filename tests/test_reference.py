@@ -2,6 +2,9 @@
 
 Needs the local no-G-limit fetch `data/raw/dr3/dr3_p16.667` (192 tiles, 97 394 rows)
 and the Hipparcos aux tables; skips when they are absent. Builds in ~15 s.
+The fetch was made with `fetch.run_fetch(data_dir=..., fetch_id="dr3_p16.667",
+counts_path="docs/data/dr3_p16.667_hpx2_counts.csv",
+selection={"parallax_min_mas": 16.666667, "g_max": None})` (no CLI flag for that).
 """
 from pathlib import Path
 
@@ -19,6 +22,10 @@ AUX = ROOT / "data" / "raw" / "dr3" / "aux"
 # Hipparcos stars the old pipeline dropped by matching them to a faint Gaia neighbour
 # 1.5-1.6" away (|dG| = 4.6 and 6.2 mag); the new rule keeps them.
 EXTRA_HIP = {"HIP 88405", "HIP 108422"}
+# Binaries the old pipeline held twice: a Gaia component 2.3-2.9" away with the same
+# parallax (within 3 sigma, |dG| < 2.5) now stands for the system (D-020).
+DROPPED_HIP = {"HIP 14886", "HIP 6234", "HIP 28796", "HIP 54980", "HIP 45688",
+               "HIP 69442", "HIP 83608", "HIP 72423", "HIP 112504", "HIP 91919"}
 
 
 @pytest.fixture(scope="module")
@@ -49,7 +56,7 @@ def test_same_gaia_stars_and_parallaxes(merged):
 def test_hipparcos_rows(merged):
     new, ref = merged
     assert _ids(new, "Hipparcos") - _ids(ref, "Hipparcos") == EXTRA_HIP
-    assert _ids(ref, "Hipparcos") <= _ids(new, "Hipparcos")
+    assert _ids(ref, "Hipparcos") - _ids(new, "Hipparcos") == DROPPED_HIP
     m = new.merge(ref, on="star_id", suffixes=("", "_ref"))
     h = m[m["source_catalogue"] == "Hipparcos"]
     # The old CSV went through float32; compare at that precision.

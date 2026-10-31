@@ -41,6 +41,11 @@ from .photometry import g_minus_v_from_bprp
 HIP_MATCH_ARCSEC = 2.0     # D-020: 1" missed 2 of 40 sampled duplicates
 HIP_MAX_DG = 1.0
 HIP_SURE_ARCSEC = 0.5      # closer than this it is the same star whatever G says (D-020)
+# Up to this radius a Gaia row whose parallax agrees within HIP_PLX_NSIGMA is the same
+# star or system: Hipparcos often measured the combined light of a binary (D-020).
+HIP_PLX_ARCSEC = 3.0
+HIP_PLX_NSIGMA = 3.0
+HIP_PLX_MAX_DG = 2.5       # ...unless the Gaia star is a faint companion (< 10 % of the light)
 _GAIA_5P6P = (parallax.SOLVED_5P, parallax.SOLVED_6P)
 # milkyway.query.query_gaia / query_hipparcos (the legacy pipeline).
 LEGACY_QUALITY_CUTS = {"parallax_over_error_min": 10.0, "ruwe_max": 1.4,
@@ -83,7 +88,9 @@ def hipparcos_candidates(hip, nb, selection, cuts=None):
     """(candidates DataFrame, SkyCoord at J2016, counts) for pass 1.
 
     Candidates: no best_neighbour or a non-5p/6p one, finite astrometry, passing the
-    fetch selection on Hipparcos parallax and transformed G. With `cuts` (legacy
+    fetch selection on Hipparcos parallax and transformed G (V when G cannot be
+    transformed: G - V <= ~0.05 for all colours, so V < g_max implies G < g_max).
+    With `cuts` (legacy
     comparison) best_neighbour is ignored: like the old pipeline, every Hipparcos star
     is a candidate and only a Gaia row that survives the cuts can replace it.
     """
@@ -99,42 +106,58 @@ def hipparcos_candidates(hip, nb, selection, cuts=None):
         c = c[c["plx"] / c["e_plx"] > cuts["hip_plx_over_error_min"]]
     from .photometry import g_minus_v_from_bv
     g = c["vmag"].to_numpy() + g_minus_v_from_bv(c["b_v"].to_numpy())
+    counts["without_transformed_g"] = int(np.isnan(g).sum())
     if selection.get("g_max") is not None:
-        c = c[g < selection["g_max"]]            # NaN G fails: selection untestable
+        c = c[np.where(np.isfinite(g), g, c["vmag"].to_numpy()) < selection["g_max"]]
     c = c.reset_index(drop=True)
     counts["passing_selection"] = len(c)
     return c, (propagate_hipparcos(c) if len(c) else None), counts
 
 
-def match_candidates(fetch_dir, coord, g_hip, radius_arcsec=HIP_MATCH_ARCSEC,
-                     max_dg=HIP_MAX_DG, sure_arcsec=HIP_SURE_ARCSEC, cuts=None):
+def match_candidates(fetch_dir, coord, cand, g_hip, cuts=None):
     """Pass 1: nearest Gaia row over all tiles (passing `cuts`) for each candidate.
 
-    Returns (matched bool array, best separation arcsec, |dG| at that neighbour).
+    A candidate is matched (Gaia has it) when its nearest Gaia row is
+    - closer than HIP_SURE_ARCSEC, or
+    - closer than HIP_MATCH_ARCSEC with |dG| < HIP_MAX_DG (or G unknown), or
+    - closer than HIP_PLX_ARCSEC with parallaxes agreeing within HIP_PLX_NSIGMA and
+      |dG| < HIP_PLX_MAX_DG (a much fainter companion must not replace the primary).
+    Returns (matched bool array, dict of per-candidate arrays: sep [arcsec], dg [mag],
+    dplx_sigma, source_id of the nearest row (-1 if none)).
     """
     from astropy.coordinates import SkyCoord
     import astropy.units as u
     n = 0 if coord is None else len(coord)
-    best_sep = np.full(n, np.inf)
-    best_dg = np.full(n, np.nan)
+    info = {"sep": np.full(n, np.inf), "dg": np.full(n, np.nan),
+            "dplx_sigma": np.full(n, np.nan), "source_id": np.full(n, -1, dtype=np.int64)}
     if n == 0:                                       # coord may be None when empty
-        return np.zeros(0, bool), best_sep, best_dg
+        return np.zeros(0, bool), info
+    plx_h, err_h = cand["plx"].to_numpy(float), cand["e_plx"].to_numpy(float)
     manifest = raw.open_fetch(fetch_dir)
     for e in manifest["tiles"]:
         t = _apply_gaia_cuts(pq.read_table(Path(fetch_dir) / e["path"], columns=[
-            "ra", "dec", "phot_g_mean_mag", "parallax", "parallax_error", "ruwe"]), cuts)
+            "source_id", "ra", "dec", "phot_g_mean_mag", "parallax", "parallax_error",
+            "ruwe"]), cuts)
         if t.num_rows == 0:
             continue
         gc = SkyCoord(ra=t["ra"].to_numpy() * u.deg, dec=t["dec"].to_numpy() * u.deg)
         idx, sep, _ = coord.match_to_catalog_sky(gc)
         sep = sep.arcsec
-        better = sep < best_sep
-        best_sep[better] = sep[better]
-        g_gaia = t["phot_g_mean_mag"].to_numpy(zero_copy_only=False).astype(float)
-        best_dg[better] = np.abs(g_gaia[idx[better]] - g_hip[better])
-    close = best_sep < radius_arcsec
-    matched = (best_sep < sure_arcsec) | (close & ((best_dg < max_dg) | np.isnan(g_hip)))
-    return matched, best_sep, best_dg
+        b = sep < info["sep"]
+        i = idx[b]
+        col = lambda name: t[name].to_numpy(zero_copy_only=False).astype(float)[i]
+        info["sep"][b] = sep[b]
+        info["dg"][b] = np.abs(col("phot_g_mean_mag") - g_hip[b])
+        info["dplx_sigma"][b] = np.abs(col("parallax") - plx_h[b]) / np.hypot(
+            col("parallax_error"), err_h[b])
+        info["source_id"][b] = t["source_id"].to_numpy()[i]
+    sep, dg = info["sep"], info["dg"]
+    with np.errstate(invalid="ignore"):
+        matched = ((sep < HIP_SURE_ARCSEC)
+                   | ((sep < HIP_MATCH_ARCSEC) & ((dg < HIP_MAX_DG) | np.isnan(g_hip)))
+                   | ((sep < HIP_PLX_ARCSEC) & (info["dplx_sigma"] < HIP_PLX_NSIGMA)
+                      & ((dg < HIP_PLX_MAX_DG) | np.isnan(g_hip))))
+    return matched, info
 
 
 def _derive(df):
@@ -204,6 +227,18 @@ def hipparcos_rows(cand, coord):
     return _derive(df)
 
 
+def _code_version():
+    """`git describe` of the working tree (with -dirty), or None outside git."""
+    import subprocess
+    try:
+        out = subprocess.run(["git", "describe", "--always", "--dirty"],
+                             cwd=Path(__file__).resolve().parent, capture_output=True,
+                             text=True, timeout=10)
+        return out.stdout.strip() or None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts=None,
                     log=print):
     """Build the catalogue dataset; returns its manifest."""
@@ -218,14 +253,17 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
     g_hip = cand["vmag"].to_numpy() + g_minus_v_from_bv(cand["b_v"].to_numpy())
     log(f"Hipparcos: {hip_counts['passing_selection']} candidates without a 5p/6p "
         f"best_neighbour; matching against {len(fm['tiles'])} tiles ...")
-    matched, sep, dg = match_candidates(fetch_dir, coord, g_hip, cuts=quality_cuts)
+    matched, info = match_candidates(fetch_dir, coord, cand, g_hip, cuts=quality_cuts)
     hip_counts.update({
         "matched_by_position": int(matched.sum()),
-        "close_but_dg_too_large": int(((sep < HIP_MATCH_ARCSEC) & ~matched).sum()),
+        "matched_by_parallax_only": int((matched & (info["sep"] >= HIP_SURE_ARCSEC)
+                                         & ~((info["sep"] < HIP_MATCH_ARCSEC)
+                                             & ((info["dg"] < HIP_MAX_DG) | np.isnan(g_hip)))).sum()),
+        "kept_with_neighbour_within_match_radius": int(
+            ((info["sep"] < HIP_MATCH_ARCSEC) & ~matched).sum()),
         "kept": int((~matched).sum())})
     log(f"  {hip_counts['matched_by_position']} matched by position, "
-        f"{hip_counts['kept']} kept as Hipparcos rows "
-        f"({hip_counts['close_but_dg_too_large']} within {HIP_MATCH_ARCSEC}\" but |dG| >= {HIP_MAX_DG})")
+        f"{hip_counts['kept']} kept as Hipparcos rows")
     keep = ~matched
     if keep.any():
         hip_df = hipparcos_rows(cand[keep].reset_index(drop=True), coord[keep])
@@ -233,18 +271,32 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
     else:
         hip_df, hip_part = pd.DataFrame({"hip": pd.array([], dtype="Int64")}), np.zeros(0)
 
-    nb5 = nb[nb["astrometric_params_solved"].isin(_GAIA_5P6P)]
-    nb5 = nb5[~nb5["hip"].isin(hip_df["hip"].astype(int))]   # a kept HIP row owns its hip
+    # hip on Gaia rows: best_neighbour first, then positional matches. A hip number is
+    # used once: a kept HIP row owns its own, and a Gaia row claimed twice gets none.
+    kept_hips = set(hip_df["hip"].astype(int))
+    nb5 = nb[nb["astrometric_params_solved"].isin(_GAIA_5P6P) & ~nb["hip"].isin(kept_hips)]
     hip_by_sid = dict(zip(nb5["source_id"].astype("int64").tolist(),
                           nb5["hip"].astype(int).tolist()))
-    zp_counts, flag_counts = {}, {}
+    used = set(hip_by_sid.values())
+    pos = pd.DataFrame({"sid": info["source_id"][matched],
+                        "hip": cand["hip"].to_numpy()[matched].astype(int)})
+    pos = pos[(pos["sid"] >= 0) & ~pos["hip"].isin(used) & ~pos["sid"].isin(hip_by_sid)]
+    pos = pos[~pos["sid"].duplicated(keep=False)]
+    hip_by_sid.update(zip(pos["sid"].tolist(), pos["hip"].tolist()))
+    hip_counts["gaia_rows_with_hip"] = len(hip_by_sid)    # those in the fetch get it
+    zp_counts, flag_counts, n_tables = {}, {}, [0]
 
     def tables():
         for k, t in raw.read_tiles(fetch_dir):
-            df = gaia_rows(_apply_gaia_cuts(t, quality_cuts), hip_by_sid)
+            t = _apply_gaia_cuts(t, quality_cuts)
             extra = hip_df[hip_part == k]
-            if len(extra):
-                df = pd.concat([df, extra[df.columns]], ignore_index=True)
+            n_tables[0] += 1
+            if t.num_rows == 0 and len(extra) == 0:
+                yield schema.CATALOGUE_SCHEMA.empty_table()   # -> empty partition file
+                continue
+            parts = ([gaia_rows(t, hip_by_sid)] if t.num_rows else []) + (
+                [extra] if len(extra) else [])
+            df = pd.concat(parts, ignore_index=True)[list(schema.COLUMNS)]
             for col, acc in (("zp_origin", zp_counts), ("dist_flag", flag_counts)):
                 for v, n in df[col].value_counts().items():
                     acc[v] = acc.get(v, 0) + int(n)
@@ -256,10 +308,14 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
         "frame": galcen_frame_params(),
         "hipparcos": {"match_radius_arcsec": HIP_MATCH_ARCSEC, "max_abs_dg": HIP_MAX_DG,
                       "sure_match_arcsec": HIP_SURE_ARCSEC,
+                      "parallax_match_arcsec": HIP_PLX_ARCSEC,
+                      "parallax_match_nsigma": HIP_PLX_NSIGMA,
+                      "parallax_match_max_abs_dg": HIP_PLX_MAX_DG,
                       "epoch_from": 1991.25, "epoch_to": 2016.0,
                       "catalogue": "public.hipparcos (ESA 1997) + gaiadr3.hipparcos2_best_neighbour",
                       "counts": hip_counts},
         "counts": {"zp_origin": zp_counts, "dist_flag": flag_counts},
+        "code": _code_version(),
     }
     source = {"kind": "raw_fetch", "fetch_id": fm["fetch_id"], "service": fm["service"],
               "fetch_manifest_sha256": storage._sha256(fetch_dir / raw.FETCH_MANIFEST_NAME),
@@ -268,7 +324,10 @@ def build_catalogue(fetch_dir, aux_dir, dataset_dir, *, dataset_id, quality_cuts
     manifest = storage.write_dataset(
         tables(), dataset_dir, dataset_id=dataset_id,
         selection={**selection, "quality_cuts": quality_cuts}, source=source,
-        level=fm["tile_level"], expected_partitions=range(n_part), provenance=provenance)
+        level=fm["tile_level"], expected_partitions=range(n_part), provenance=provenance,
+        fill_empty=True)                 # a strict cut may leave a tile without rows
+    if n_tables[0] != n_part:            # fill_empty must not hide a skipped tile
+        raise RuntimeError(f"built {n_tables[0]} tiles, expected {n_part}")
     log(f"Wrote {dataset_dir}: {manifest['storage']['total_rows']} rows in "
         f"{time.time() - t0:.0f} s")
     return manifest

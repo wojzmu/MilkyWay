@@ -50,8 +50,14 @@ def _session():
     return requests.Session()
 
 
+# A body stream cut mid-download raises these, which are not ConnectionErrors.
+_STREAM_ERRORS = (requests.exceptions.ChunkedEncodingError,
+                  requests.exceptions.ContentDecodingError)
+
+
 def _is_transient(exc):
-    if isinstance(exc, (requests.ConnectionError, requests.Timeout, FetchTimeout)):
+    if isinstance(exc, (requests.ConnectionError, requests.Timeout, FetchTimeout,
+                        *_STREAM_ERRORS)):
         return True
     if isinstance(exc, requests.HTTPError):
         resp = exc.response
@@ -91,7 +97,8 @@ def wait(job_url, *, poll=POLL, timeout=JOB_TIMEOUT_S, session=None, sleep=time.
             r = s.get(f"{job_url}/phase", timeout=_HTTP_TIMEOUT)
             r.raise_for_status()
             phase, failures = r.text.strip().upper(), 0
-        except (requests.ConnectionError, requests.Timeout, requests.HTTPError):
+        except (requests.ConnectionError, requests.Timeout, requests.HTTPError,
+                *_STREAM_ERRORS):
             failures += 1
             if failures > 5:
                 raise
@@ -250,7 +257,9 @@ def run_fetch(*, data_dir, fetch_id=raw.DEFAULT_FETCH_ID, counts_path=None,
         manifest_written = False
         if full and not res["failed"]:
             raw.finalize_fetch(fetch_dir, plan, fetch_id=fetch_id, selection=selection,
-                               service=base_url, notes=None)
+                               service=base_url,
+                               notes={"counts_file": Path(counts_path).name,
+                                      "counts_sha256": _sha256(counts_path)})
             manifest_written = True
         on_disk = raw.done_tiles(fetch_dir, selected)
         finished = _now()

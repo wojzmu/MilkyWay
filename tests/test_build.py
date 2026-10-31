@@ -15,10 +15,13 @@ from tests.test_raw import make_table                    # noqa: E402
 N = 2   # rows per tile
 
 
-def _fetch(tmp_path, ruwe=(1.0, 1.0)):
+def _fetch(tmp_path, ruwe=(1.0, 1.0), empty=()):
     fdir = tmp_path / "fetch"
-    tiles = raw.plan_tiles({k: N for k in range(192)})
+    tiles = raw.plan_tiles({k: 0 if k in empty else N for k in range(192)})
     for tile in tiles:
+        if tile.k in empty:
+            raw.write_tile(make_table(tile, 0), fdir, tile)
+            continue
         t = make_table(tile, N, astrometric_params_solved=[31] * N,
                        nu_eff_used_in_astrometry=[1.5] * N, pseudocolour=[None] * N,
                        ecl_lat=[10.0] * N, parallax_error=[0.05] * N,
@@ -37,10 +40,13 @@ def _aux(tmp_path, gaia_sid):
              (2, 1.5, 1.5, 5.0),      # same position as the synthetic Gaia rows -> matched
              (3, 100.0, 40.0, 5.0),   # isolated -> kept
              (4, 200.0, -30.0, 0.3),  # parallax below the fetch floor -> dropped
-             (5, 250.0, 60.0, 2.0)]   # 2p best_neighbour, isolated -> kept
+             (5, 250.0, 60.0, 2.0),   # 2p best_neighbour, isolated -> kept
+             (6, 1.5, 1.5 + 2.5 / 3600, 1.0),  # 2.5" off, same parallax -> matched
+             (7, 300.0, 10.0, 5.0)]   # no B-V (G untransformable), isolated -> kept
     hip = pd.DataFrame(stars, columns=["hip", "ra", "de", "plx"])
     hip = hip.assign(e_plx=0.2, pmra=0.0, pmde=0.0, vmag=9.0, b_v=0.5, v_i=0.6)
-    hip.loc[hip["hip"] == 2, "vmag"] = 10.1     # G within 1 mag of the Gaia rows (10.0)
+    hip.loc[hip["hip"].isin([2, 6]), "vmag"] = 10.1   # G within 1 mag of the Gaia rows (10.0)
+    hip.loc[hip["hip"] == 7, "b_v"] = np.nan
     hip["hip"] = hip["hip"].astype("int32")
     pq.write_table(pa.Table.from_pandas(hip, preserve_index=False), adir / "hipparcos.parquet")
     nb = pa.table({"hip": pa.array([1, 5], pa.int32()),
@@ -73,11 +79,12 @@ def built(tmp_path_factory):
 def test_manifest_and_counts(built):
     m, out, _ = built
     assert storage.open_catalog(out)["status"] == "complete"
-    assert m["storage"]["total_rows"] == 192 * N + 2
+    assert m["storage"]["total_rows"] == 192 * N + 3
     h = m["provenance"]["hipparcos"]["counts"]
-    assert h["matched_by_position"] == 1 and h["kept"] == 2
-    assert h["close_but_dg_too_large"] == 0
-    assert m["provenance"]["counts"]["zp_origin"] == {"lindegren2021": 192 * N, "none": 2}
+    assert h["matched_by_position"] == 2 and h["kept"] == 3
+    assert h["matched_by_parallax_only"] == 1 and h["without_transformed_g"] == 1
+    assert h["kept_with_neighbour_within_match_radius"] == 0
+    assert m["provenance"]["counts"]["zp_origin"] == {"lindegren2021": 192 * N, "none": 3}
     assert m["provenance"]["parallax"]["method"] == "lindegren2021_clamped"
     assert m["provenance"]["frame"]["preset"] == "v4.0"
     assert m["selection"] == {**raw.DEFAULT_SELECTION, "quality_cuts": None}
@@ -87,7 +94,8 @@ def test_rows(built):
     _, out, gaia_sid = built
     df = catalog_query.read_catalogue(out)
     hip_rows = df[df["source_catalogue"] == "Hipparcos"]
-    assert sorted(hip_rows["star_id"]) == ["HIP 3", "HIP 5"]
+    assert sorted(hip_rows["star_id"]) == ["HIP 3", "HIP 5", "HIP 7"]
+    assert hip_rows.loc[hip_rows["star_id"] == "HIP 7", "g_mag"].isna().all()
     assert (hip_rows["zp_origin"] == "none").all()
     g = df[df["source_catalogue"] == "Gaia"]
     assert g.loc[g["source_id"] == gaia_sid, "hip"].tolist() == [1]
@@ -133,6 +141,17 @@ def test_legacy_cuts(tmp_path):
     df = catalog_query.read_catalogue(tmp_path / "ds")
     gaia = df[df["source_catalogue"] == "Gaia"]
     assert len(gaia) == 192 and (gaia["ruwe"] < 1.4).all()
-    # HIP 5 has plx/e_plx = 10 exactly and fails the legacy "> 10" cut
-    assert sorted(df.loc[df["source_catalogue"] == "Hipparcos", "star_id"]) == ["HIP 1", "HIP 3"]
-    assert gaia["hip"].isna().all()
+    # HIP 5 has plx/e_plx = 10 exactly and HIP 6 has 5: both fail the legacy "> 10" cut
+    assert sorted(df.loc[df["source_catalogue"] == "Hipparcos", "star_id"]) == [
+        "HIP 1", "HIP 3", "HIP 7"]
+    # HIP 2 was matched by position, so one Gaia row at its place carries hip 2
+    assert gaia["hip"].dropna().tolist() == [2]
+
+
+def test_empty_tile_becomes_empty_partition(tmp_path):
+    fdir, tiles = _fetch(tmp_path, empty=(3,))
+    adir = _aux(tmp_path, tiles[7].lo)
+    m = build.build_catalogue(fdir, adir, tmp_path / "ds", dataset_id="ds", log=lambda *a: None)
+    parts = {p["part_hpx"]: p["rows"] for p in m["storage"]["partitions"]}
+    assert len(parts) == 192 and parts[3] == 0
+    assert storage.open_catalog(tmp_path / "ds")["status"] == "complete"

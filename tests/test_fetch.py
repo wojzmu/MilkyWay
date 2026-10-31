@@ -238,3 +238,10 @@ def test_run_aux_skips_when_complete(tmp_path, monkeypatch):
     monkeypatch.setattr(fetch, "_session", lambda: pytest.fail("network touched"))
     assert fetch.run_aux(data_dir=tmp_path, progress=None)["already_complete"]
     assert cli.main(["--fetch-aux", "--data-dir", str(tmp_path)]) == 0
+
+
+def test_stream_errors_are_transient():
+    import requests
+    assert fetch._is_transient(requests.exceptions.ChunkedEncodingError("cut"))
+    assert fetch._is_transient(requests.exceptions.ContentDecodingError("bad gzip"))
+    assert not fetch._is_transient(ValueError("x"))

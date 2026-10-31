@@ -79,6 +79,14 @@ python MilkyWay.py --fetch-aux                              # Hipparcos tables -
 
 Progress goes to `fetch.log`; read `fetch_summary.json` for the outcome. Exit code 1 if any tile failed. A completed fetch is the permanent local copy: later stages read it, never the archive. Back up `data/raw/` (~4.2 GB) and check a restored copy with `raw.open_fetch(dir, verify_hashes=True)`. Re-running `--fetch` on a complete fetch makes no network call.
 
+Catalogue build (milestone M3; `milkyway/build.py`, offline):
+
+```bash
+python MilkyWay.py --build [--fetch-id ID] [--dataset-id ID]   # raw tiles + Hipparcos aux -> data/<fetch-id>_v2/ (~4 min)
+```
+
+Needs a complete fetch and `--fetch-aux`. Writes the schema-v2 dataset with zero-point-corrected parallaxes, inversion distances and Galactocentric xyz; all rows are kept (the 1.25 kpc cut happens at export, M4). `tests/test_reference.py` compares against the frozen 60 pc reference using the local no-G-limit fetch `data/raw/dr3/dr3_p16.667` and skips when it is absent.
+
 `data/reference/nearby_stars_60.0pc.csv` is the frozen reference catalogue for
 compatibility tests (SHA-256 in D-013); tests that need it skip when it is absent.
 
@@ -110,7 +118,10 @@ calls `milkyway.cli.main()`. The logic is split by concern:
 | `mass.py` | `estimate_mass`, `mg_upper_bound_for_mass`, `apply_min_mass` |
 | `classify.py` | spectral/CMD classification **and** `flag_spurious_parallax` (shared `_MS_*` ridge) |
 | `query.py` | Gaia/Hipparcos ADQL + SIMBAD (network) |
-| `astrometry.py` | epoch propagation, cross-match, UVW, `add_galactic_xyz` (astropy) |
+| `astrometry.py` | epoch propagation, cross-match, UVW, `add_galactic_xyz`, `galactocentric_xyz` (astropy preset `v4.0`) |
+| `parallax.py` | zero-point via `gaiadr3-zeropoint`, inputs clamped to the interior of its validity range; `zp_origin` (M3) |
+| `distance.py` | inversion distances: quantiles `r_lo_pc`/`dist_pc`/`r_hi_pc`, `dist_flag` (M3) |
+| `build.py` | raw fetch + Hipparcos aux -> schema-v2 catalogue dataset; Hipparcos merge rules (M3) |
 | `pipeline.py` | `gaia/hipparcos_to_common` + `build_merged_catalogue` orchestrator |
 | `plots.py` | figures + helpers (`_resolve_path`, `_save`, `_label_famous`) |
 | `cli.py` | argparse `main()` |
@@ -121,7 +132,7 @@ calls `milkyway.cli.main()`. The logic is split by concern:
 
 `color.py`/`photometry.py`/`mass.py`/`classify.py` have **no network imports** and
 are runnable without astroquery/astropy; the astroquery/astropy calls in
-`query.py`/`astrometry.py` stay function-local (lazy). Preserve that separation.
+`query.py`/`astrometry.py` stay function-local (lazy); so does the `zero_point` import in `parallax.py`. Preserve that separation.
 The store modules need pyarrow (and duckdb for `catalog_query`); they are not
 re-exported from the package root and `cli.py` imports them lazily, so the plain
 CSV pipeline runs without them.
@@ -134,7 +145,7 @@ schema version and columns, that `catalog/` holds exactly the listed files, each
 file's schema and row count, and `expected_partitions`; content changes need
 `verify_hashes=True`. Readers use the manifest's file list, never a glob.
 Schema changes bump `schema.SCHEMA_VERSION` (old datasets then refuse to open
-until rebuilt) and get a `DECISIONS.md` entry.
+until rebuilt) and get a `DECISIONS.md` entry. The current version is 2 (D-020); old version-1 datasets refuse to open until rebuilt.
 
 ### Pipeline flow
 

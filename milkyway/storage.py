@@ -41,7 +41,7 @@ def partition_path(part_hpx):
 
 def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
                   level=schema.PARTITION_LEVEL, row_group_size=ROW_GROUP_SIZE,
-                  expected_partitions=None, provenance=None):
+                  expected_partitions=None, provenance=None, fill_empty=False):
     """Write `tables` (an iterable of schema-conforming pa.Tables) as a dataset.
 
     Streaming rule: every partition must arrive whole inside a single input table
@@ -52,7 +52,10 @@ def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
     `expected_partitions` (iterable of part_hpx, optional): the partitions the build
     must produce. Any missing or extra one raises before the manifest is written, so
     a download that silently skipped a tile can never be marked complete. It is
-    stored in the manifest and re-checked by open_catalog().
+    stored in the manifest and re-checked by open_catalog(). `fill_empty=True` writes
+    a zero-row file for each expected partition that received no rows instead (for
+    callers that guarantee every partition was produced, e.g. one table per raw tile,
+    where a strict cut can leave a tile empty).
 
     `selection` (the cuts that define the sample, e.g. parallax floor and `g_max`,
     None when unset) and `source` (where the rows came from) are stored verbatim in
@@ -88,6 +91,10 @@ def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
             rows = table.filter(pc.equal(parts, k))
             partitions[k] = _write_partition(root, k, rows, row_group_size)
 
+    if fill_empty and expected is not None:
+        empty = schema.CATALOGUE_SCHEMA.empty_table()
+        for k in set(expected) - set(partitions):
+            partitions[k] = _write_partition(root, k, empty, row_group_size)
     if expected is not None and sorted(partitions) != expected:
         missing = sorted(set(expected) - set(partitions))
         extra = sorted(set(partitions) - set(expected))

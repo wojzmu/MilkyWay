@@ -241,20 +241,30 @@ add the solar peculiar motion (Schönrich, Binney & Dehnen 2010: 11.1, 12.24,
 
 ---
 
-## 5a. Parquet store (schema version 1)
+## 5a. Parquet store (schema version 2)
 
 The same catalogue can be held as a partitioned Parquet dataset (milestone M1 of
 `docs/PLAN_MAPA_1.0.md`), built with `python MilkyWay.py --to-parquet FILE.csv`.
-The column contract is `milkyway/schema.py`; decisions D-004, D-011, D-015, D-016.
+The column contract is `milkyway/schema.py`; decisions D-004, D-011, D-015, D-016, D-020. Version 1 datasets refuse to open until rebuilt.
 
-**Extra columns** (beyond the field table in §2; `dist_pc` stays a stored column
-until distances move to `r_med_pc` in M3):
+**Extra columns** (beyond the field table in §2):
 
 | Field | Type | Description |
 |---|---|---|
 | `source_id` | int64, null for Hipparcos rows | Gaia DR3 `source_id`, parsed from `star_id`; exact (never via float64) |
 | `hip` | int32, null for Gaia rows | Hipparcos number, parsed from `star_id` |
 | `healpix` | int64 | NESTED HEALPix index at level 12: `source_id >> 35` for Gaia rows, from (ra, dec) for Hipparcos rows |
+| `parallax_error` | float32, nullable, mas | Formal parallax uncertainty σ |
+| `parallax_zp_mas` | float32, nullable, mas | Zero-point offset (Lindegren+2021, `gaiadr3-zeropoint`); corrected parallax = `parallax_mas − parallax_zp_mas` |
+| `zp_origin` | string | `lindegren2021`, `lindegren2021_clamped` (inputs clamped to just inside the validity range), `global_fallback` (−0.017 mas), `none` (no correction: Hipparcos, legacy CSV rows) |
+| `ruwe` | float32, nullable | Gaia astrometric fit quality |
+| `r_lo_pc` | float32, nullable, pc | 15.87 % distance quantile, `1000/(ϖ_c + σ)` |
+| `r_hi_pc` | float32, nullable, pc | 84.13 % quantile, `1000/(ϖ_c − σ)`; null when `ϖ_c − σ ≤ 0` |
+| `dist_origin` | string | `parallax_inversion` |
+| `dist_flag` | string | `ok`, `low_snr` (ϖ_c/σ ≤ 5; row kept), `no_error` (σ unknown: legacy CSV) |
+| `xgc_pc`, `ygc_pc`, `zgc_pc` | float32, pc | Galactocentric Cartesian (astropy preset `v4.0`: Sun at 8.122 kpc, 20.8 pc above the plane) |
+
+In catalogue builds (`--build`) `dist_pc` is the median distance, `1000/ϖ_c` from the zero-point-corrected parallax, and `abs_g` uses ϖ_c; `parallax_mas` stays as published. Legacy CSV rows keep `dist_pc = 1000/parallax_mas`, `zp_origin = none` and `dist_flag = no_error`. The legacy CSV export still writes only the original 36 columns.
 
 **Types:** `ra`, `dec`, `l`, `b`, `parallax_mas` are float64; all other floats are
 float32 (a CSV round trip keeps them to ≤ 1.2·10⁻⁷ relative); `rgb_*` are uint8;

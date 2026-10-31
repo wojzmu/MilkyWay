@@ -108,7 +108,8 @@ def _build(args):
     dataset_id = args.dataset_id or f"{fetch_id}_v{_schema_version()}"
     out = os.path.join(args.data_dir, dataset_id)
     build.build_catalogue(os.path.join(raw_dir, fetch_id), os.path.join(raw_dir, "aux"),
-                          out, dataset_id=dataset_id)
+                          out, dataset_id=dataset_id,
+                          quality_cuts=build.LEGACY_QUALITY_CUTS if args.legacy_cuts else None)
     return 0
 
 
@@ -161,19 +162,27 @@ def main(argv=None):
                         help="build the catalogue dataset from a complete raw fetch "
                              "(--fetch-id) and the Hipparcos aux tables into "
                              "<data-dir>/<dataset-id> (default id: <fetch-id>_v<schema>)")
+    parser.add_argument("--legacy-cuts", action="store_true",
+                        help="with --build: apply the old pipeline's quality cuts "
+                             "(parallax_over_error > 10, ruwe < 1.4; Hipparcos plx/e > 10), "
+                             "for comparison with the reference catalogue (D-013)")
     parser.add_argument("--max-jobs", type=int, default=2, metavar="N",
                         help="concurrent archive jobs for --fetch, 1..4 (default 2)")
     args = parser.parse_args(argv)
 
     fetching = args.fetch or args.fetch_aux or args.fetch_tiles is not None
     if args.build:
-        if fetching or args.to_parquet or args.dataset or args.plot_only or args.export_csv:
+        if (fetching or args.to_parquet or args.dataset or args.plot_only or args.export_csv
+                or args.min_mass is not None or args.max_dist is not None or args.csv):
             parser.error("--build cannot be combined with fetching, --to-parquet, "
-                         "--dataset, --export-csv or --plot-only")
+                         "--dataset, --export-csv, --plot-only, --min-mass, --max-dist "
+                         "or --csv")
         for value in (args.fetch_id, args.dataset_id):
             if value is not None and (msg := _id_problem(value)):
                 parser.error(msg)
         return _build(args)
+    if args.legacy_cuts:
+        parser.error("--legacy-cuts requires --build")
     if fetching:
         if args.to_parquet or args.dataset or args.plot_only or args.export_csv:
             parser.error("--fetch/--fetch-tiles/--fetch-aux cannot be combined with "

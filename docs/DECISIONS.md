@@ -25,14 +25,17 @@ decyzja — dopisz.
   `ruwe`, `r_lo_pc`, `r_hi_pc`, `dist_origin`, `dist_flag`,
   `xgc/ygc/zgc_pc` (preset `v4.0`). `r_med_pc` nie jest osobną kolumną —
   `dist_pc` jest medianą (zastępuje zapowiedź aliasu z D-015). `abs_g` z ϖ_c.
-- **Zasięg:** katalog trzyma cały pobrany zbiór (23 373 955 wierszy);
+- **Zasięg:** katalog trzyma cały pobrany zbiór (23 373 946 wierszy);
   cięcie do 1,25 kpc robi eksport (M4). Cięć jakości nie stosujemy.
 - **Hipparcos:** wiersz HIP wchodzi tylko bez odpowiednika 5p/6p. Najpierw
-  `hipparcos2_best_neighbour` (97 984 gwiazd → Gaia), potem dla 19 087
-  pozostałych propagacja epoki i dopasowanie pozycyjne do wszystkich
-  kafelków, **2″** (nie 1″ jak v4 D10) i |ΔG| < 1 mag: 16 989 dopasowanych,
-  2 098 zostaje (1 013 z `low_snr`). Wiersze Gai dostają `hip` z
-  `best_neighbour` (96 477). Katalog HIP to `public.hipparcos` (ESA 1997),
+  `hipparcos2_best_neighbour` (97 984 gwiazd → Gaia), potem dla 19 247
+  pozostałych (test G < 15 na V, gdy B−V nie daje G) propagacja epoki i
+  dopasowanie do wszystkich kafelków: < 0,5″ zawsze; < **2″** (nie 1″ jak
+  v4 D10) przy |ΔG| < 1 mag; < 3″ przy paralaksie zgodnej w 3σ i
+  |ΔG| < 2,5 (składnik układu podwójnego). 17 158 dopasowanych (41 tylko
+  przez paralaksę), 2 089 zostaje (1 009 z `low_snr`, 117 z G < 3, 47 bez G). Wiersze Gai dostają `hip` z
+  `best_neighbour` albo z dopasowania pozycyjnego (113 635; numer używany
+  raz). Katalog HIP to `public.hipparcos` (ESA 1997),
   jak w starym pipeline'ie, nie Hipparcos-2.
 **Dlaczego:** pomiar na pobranych danych 31.10: ϖ/σ > 5 dla 99,2%
 wierszy, więc EDSD zmienia obraz tylko dla ~0,8%. Samo `best_neighbour`
@@ -40,9 +43,18 @@ dałoby ~17 tys. zdublowanych gwiazd. Próbka 40 zachowanych HIP (G ≥ 6,
 stożki w AIP): 36 ma w Gai tylko rozwiązanie 2p (Hipparcos jest jedynym
 źródłem paralaksy), 2 miały odpowiednik 5p w 1,17–1,26″ (stąd 2″), 1 to
 gwiazda Gai z ϖ = 0,28 mas spoza selekcji — takich duplikatów (~2,5%)
-offline nie wykryjemy. Skutek korekty: mediana ϖ rośnie o 3,2%, w
+offline nie wykryjemy. Próg 0,5″ bez warunku na G, bo przeliczenie V → G
+zawodzi dla czerwonych karłów (Proxima weszłaby podwójnie). Test 60 pc
+(D-013, `tests/test_reference.py`): te same 58 931 gwiazd Gai z paralaksą
+bit w bit, z 2 585 HIP brak 10 układów podwójnych, które stary katalog miał
+podwójnie, i są 2 gwiazdy, które stary kod zgubił; odległości różnią
+się tylko o zero-point (4,0% poza 3 połówkami przedziału, każda z
+|zp|/σ > 2,99). T6 (ESA vs AIP) odłożone: ESA 31.10 zwracało 503. Skutek korekty: mediana ϖ rośnie o 3,2%, w
 1,25 kpc jest 17,20 mln gwiazd zamiast 16,44 mln przy surowej ϖ.
-**Źródło:** plan M3 i odpowiedzi użytkownika w sesji Claude Code, 31.10.2026.
+Progi 3″/3σ/2,5 mag i test G na V dodane po przeglądzie kodu (Opus):
+bez nich ginęło 59 gwiazd HIP bez B−V, a układy podwójne wchodziły dwa razy.
+**Źródło:** plan M3, odpowiedzi użytkownika i przegląd kodu w sesji Claude
+Code, 31.10.2026.
 
 ## D-019 · 2026-10-31 · Kształt pobrania M2
 **Decyzja:**

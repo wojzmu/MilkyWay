@@ -68,6 +68,16 @@ def _export_csv(dataset, out_path):
     print(f"Wrote {out_path} ({table.num_rows} stars)")
 
 
+def _export_viewer(dataset, out_dir):
+    """Binary export for the web viewer (M4): points.bin, details.bin, index.json."""
+    from . import viewer_export
+    idx = viewer_export.export_viewer(dataset, out_dir)
+    s = idx["sampling"]
+    print(f"Wrote {out_dir}: {idx['n']} stars of {s['n_eligible']} within "
+          f"{idx['selection']['dist_pc_max']} pc (f = {s['f']:.4f}, "
+          f"{s['n_always']} bright stars always kept)")
+
+
 def _fetch(args, tile_ids):
     """Run the raw download; returns the process exit code (1 if any tile failed)."""
     from . import fetch, raw                           # lazy: requests/pyarrow optional
@@ -145,6 +155,10 @@ def main(argv=None):
                              "to load with --plot-only or export with --export-csv")
     parser.add_argument("--export-csv", default=None, metavar="OUT",
                         help="with --dataset: write the legacy CSV and exit")
+    parser.add_argument("--export-viewer", default=None, metavar="OUT_DIR",
+                        help="with --dataset: write the binary viewer export "
+                             "(points.bin, details.bin, index.json; stars within "
+                             "1250 pc thinned to ~1.5 million) and exit")
     parser.add_argument("--data-dir", default=os.path.join(PROJECT_ROOT, "data"),
                         metavar="DIR", help="where datasets live (default: <project>/data)")
     parser.add_argument("--fetch", action="store_true",
@@ -208,11 +222,14 @@ def main(argv=None):
         parser.error("--dataset-id requires --to-parquet")
     if args.export_csv and not args.dataset:
         parser.error("--export-csv requires --dataset")
+    if args.export_viewer and (not args.dataset or args.export_csv or args.plot_only):
+        parser.error("--export-viewer requires --dataset and excludes --export-csv "
+                     "and --plot-only")
     if args.to_parquet and (args.dataset or args.export_csv or args.plot_only):
         parser.error("--to-parquet cannot be combined with --dataset, --export-csv "
                      "or --plot-only")
-    if args.dataset and not (args.plot_only or args.export_csv):
-        parser.error("--dataset requires --plot-only or --export-csv")
+    if args.dataset and not (args.plot_only or args.export_csv or args.export_viewer):
+        parser.error("--dataset requires --plot-only, --export-csv or --export-viewer")
 
     if args.dataset_id is not None and (msg := _id_problem(args.dataset_id)):
         parser.error(msg)
@@ -227,6 +244,9 @@ def main(argv=None):
         return _fetch(args, tile_ids)
     if args.to_parquet:
         _to_parquet(args.to_parquet, args.dataset_id, args.data_dir)
+        return
+    if args.export_viewer:
+        _export_viewer(_dataset_dir(args.dataset, args.data_dir), args.export_viewer)
         return
     if args.export_csv:
         _export_csv(_dataset_dir(args.dataset, args.data_dir), args.export_csv)

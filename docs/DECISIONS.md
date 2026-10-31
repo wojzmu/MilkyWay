@@ -11,6 +11,34 @@ decyzja — dopisz.
 
 ---
 
+## D-022 · 2026-10-31 · ESA i AIP zwracają te same dane (M2 T6)
+**Decyzja:** kafelki z AIP traktujemy jako równoważne archiwum ESA; ESA
+pozostaje zapasem bez potrzeby osobnego pobrania (OP-1: punkt „zgodność
+wyniku” zamknięty dla DR3).
+**Dlaczego:** kafelki 111 i 109 (30 055 + 30 068 wierszy) pobrane z ESA
+(sync, VOTable binarny) mają te same `source_id` i identyczne bity we
+wszystkich 35 pozostałych kolumnach co nasze pliki z AIP. 31.10 ESA rano
+zwracało 503, po południu działało (~80 s na zapytanie).
+**Źródło:** porównanie w sesji Claude Code, 31.10.2026.
+
+## D-021 · 2026-10-31 · Eksport binarny dla viewera (M4)
+**Decyzja:**
+- `milkyway/viewer_export.py`, `--dataset ID --export-viewer DIR`: jeden plik
+  bez sześcianów 250 pc (plan 1.0 §2): `points.bin` (nagłówek `MWPT` 16 B,
+  SoA: xyz float32, RGBU uint8, **kod klasy uint8** — dodatek wobec S1
+  dec. 11, żeby viewer zachował kolory i filtr kategorii; 17 B/gwiazdę),
+  `details.bin` (`MWDT`, rekordy 24 B jak w S1: id, r_lo, r_hi, G, BP−RP;
+  viewer czyta jeden rekord przez HTTP Range), `index.json`.
+- Cięcie `dist_pc ≤ 1250`, przerzedzenie `splitmix64(id) < f·2⁶⁴`, jedno f
+  wszędzie (S1 dec. 12), cel 1,5 mln; gwiazdy z G < 6 zawsze (6 743) i na
+  początku pliku, reszta po haszu, więc każdy prefiks to próba losowa.
+  Wynik: 1 505 769 z 17 198 645 gwiazd (f = 0,0872); 25,6 + 36,1 MB.
+- Pliki eksportu są generowane i git-ignorowane (`web/public/map_*/`);
+  wdrożenie na GitHub Pages wymaga osobnej decyzji (rozmiar w repo).
+**Dlaczego:** viewer z obiektem JS na gwiazdę i CSV nie udźwignie 1,5 mln
+punktów; filtrowanie w shaderze (uniformy) nie przebudowuje geometrii.
+**Źródło:** plan M4 w sesji Claude Code, 31.10.2026.
+
 ## D-020 · 2026-10-31 · Odległości i katalog M3 (schemat v2)
 **Decyzja:**
 - **Zero-point:** `lindegren2021_clamped` wg v4 S2 D5 (pakiet

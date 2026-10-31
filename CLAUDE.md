@@ -85,7 +85,7 @@ Catalogue build (milestone M3; `milkyway/build.py`, offline):
 python MilkyWay.py --build [--fetch-id ID] [--dataset-id ID] [--dust-map FITS | --no-dust]   # -> data/<fetch-id>_v3/
 ```
 
-Needs a complete fetch, `--fetch-aux` and (unless `--no-dust`) the Edenhofer dust map `data/dust/edenhofer2023/mean_and_std_healpix.fits` (Zenodo 8187943, 3.25 GB, md5 in `milkyway/dust.py`; M5, D-024). Writes the schema-v2 dataset with zero-point-corrected parallaxes, inversion distances and Galactocentric xyz; all rows are kept (the 1.25 kpc cut happens at export, M4). `tests/test_reference.py` compares against the frozen 60 pc reference using the local no-G-limit fetch `data/raw/dr3/dr3_p16.667` and skips when it is absent.
+Needs a complete fetch, `--fetch-aux` and (unless `--no-dust`) the Edenhofer dust map `data/dust/edenhofer2023/mean_and_std_healpix.fits` (Zenodo 8187943, 3.25 GB, md5 in `milkyway/dust.py`; M5, D-024). Writes the schema-v3 dataset with zero-point-corrected parallaxes, inversion distances, Galactocentric xyz and extinction; all rows are kept (the 1.25 kpc cut happens at export, M4). `tests/test_reference.py` compares against the frozen 60 pc reference using the local no-G-limit fetch `data/raw/dr3/dr3_p16.667` and skips when it is absent.
 
 Viewer export (milestone M4; `milkyway/viewer_export.py`, D-021/D-023):
 
@@ -95,6 +95,12 @@ python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-viewer web/public/map_trac
 ```
 
 Writes `points.bin` (v2: int16 positions, 11 B/star), `details.bin` (24 B/star, read per click via HTTP Range) and `index.json`; output is git-ignored. Not deployed yet: plan is hosting on Hugging Face and absolute URLs in `web/public/datasets.json` (the loader accepts them).
+
+Scale-height fit (milestone M5; `milkyway/scale_height.py`, D-025, offline):
+
+```bash
+python MilkyWay.py --dataset dr3_g15_p0.5_v3 --scale-height docs/data   # -> scale_height.json + .png
+```
 
 `data/reference/nearby_stars_60.0pc.csv` is the frozen reference catalogue for
 compatibility tests (SHA-256 in D-013); tests that need it skip when it is absent.
@@ -131,6 +137,7 @@ calls `milkyway.cli.main()`. The logic is split by concern:
 | `parallax.py` | zero-point via `gaiadr3-zeropoint`, inputs clamped to the interior of its validity range; `zp_origin` (M3) |
 | `distance.py` | inversion distances: quantiles `r_lo_pc`/`dist_pc`/`r_hi_pc`, `dist_flag` (M3) |
 | `build.py` | raw fetch + Hipparcos aux -> catalogue dataset; Hipparcos merge rules (M3) |
+| `scale_height.py` | orientational disc scale-height fit, G/early-K dwarfs in R < 250 pc (M5) |
 | `dust.py` | Edenhofer 3D dust map reader (no healpy), E -> A_G, E(BP−RP), dereddening (M5); inputs in `milkyway/dust_data/` |
 | `pipeline.py` | `gaia/hipparcos_to_common` + `build_merged_catalogue` orchestrator |
 | `plots.py` | figures + helpers (`_resolve_path`, `_save`, `_label_famous`) |

@@ -167,6 +167,9 @@ def main(argv=None):
                         help="with --dataset: write the binary viewer export "
                              "(points.bin, details.bin, index.json; stars within "
                              "1250 pc thinned to ~1.5 million) and exit")
+    parser.add_argument("--scale-height", default=None, metavar="OUT_DIR",
+                        help="with --dataset: fit the disc scale height (M5) and write "
+                             "scale_height.json and scale_height.png, then exit")
     parser.add_argument("--abs-mag-max", type=float, default=None, metavar="M",
                         help="with --export-viewer: keep only stars with M_G <= M "
                              "(e.g. 2: disc tracers seen through the whole volume)")
@@ -251,8 +254,14 @@ def main(argv=None):
     if args.to_parquet and (args.dataset or args.export_csv or args.plot_only):
         parser.error("--to-parquet cannot be combined with --dataset, --export-csv "
                      "or --plot-only")
-    if args.dataset and not (args.plot_only or args.export_csv or args.export_viewer):
-        parser.error("--dataset requires --plot-only, --export-csv or --export-viewer")
+    if args.scale_height and (not args.dataset or args.export_csv or args.plot_only
+                              or args.export_viewer):
+        parser.error("--scale-height requires --dataset and excludes --export-csv, "
+                     "--export-viewer and --plot-only")
+    if args.dataset and not (args.plot_only or args.export_csv or args.export_viewer
+                             or args.scale_height):
+        parser.error("--dataset requires --plot-only, --export-csv, --export-viewer "
+                     "or --scale-height")
 
     if args.dataset_id is not None and (msg := _id_problem(args.dataset_id)):
         parser.error(msg)
@@ -274,6 +283,10 @@ def main(argv=None):
         return
     if args.export_csv:
         _export_csv(_dataset_dir(args.dataset, args.data_dir), args.export_csv)
+        return
+    if args.scale_height:
+        from . import scale_height
+        scale_height.run(_dataset_dir(args.dataset, args.data_dir), args.scale_height)
         return
 
     # On a full run the output file is named for the volume actually queried, and

@@ -72,8 +72,10 @@ Szacunki w sesjach pracy z Claude Code (wieczór lub pół dnia weekendu).
 **Stan na 31.10.2026** (gałąź `m3-odleglosci`, wypchnięta, bez PR; bazuje na
 niepołączonej `m1-magazyn`):
 - M1–M4 **zrobione**; dokumenty: `JAK_POBIERAMY_DANE.md`,
-  `JAK_LICZYMY_ODLEGLOSCI.md`, `JAK_RYSUJEMY_MAPE.md`. M5 część 1 (pył)
-  **zrobiona**: D-024, `JAK_LICZYMY_PYL.md`, katalog schematu v3. M2 T6 (ESA = AIP)
+  `JAK_LICZYMY_ODLEGLOSCI.md`, `JAK_RYSUJEMY_MAPE.md`. M5 **zrobione**:
+  pył (D-024, `JAK_LICZYMY_PYL.md`, katalog schematu v3) i orientacyjna
+  wysokość skali **h ≈ 331 pc** (warianty 316–342; D-025,
+  `JAK_MIERZYMY_DYSK.md`). M2 T6 (ESA = AIP)
   i T7 (przegląd) zamknięte (D-022).
 - Dane lokalne (git-ignorowane): pobranie `data/raw/dr3/dr3_g15_p0.5`,
   zbiór 60 pc `data/raw/dr3/dr3_p16.667`, Hipparcos `data/raw/dr3/aux`,
@@ -93,8 +95,9 @@ niepołączonej `m1-magazyn`):
   a gwiazdy spoza 1,25 kpc albo spoza katalogu są wypisane w raporcie
   eksportu zamiast cicho pominięte. Przed kodem: wpis w `DECISIONS.md`
   (źródło nazw, lista, plik eksportu).
-- **Następny: M5 część 2** — fit wysokości skali z `abs_g0` ≤ 6 (D-014;
-  pył już jest, D-024); dokument prostym językiem na koniec.
+- **Następny: M6** — przejście na DR4, gdy będzie dostępne (sprawdzić
+  OP-1: gdzie i z jakimi kolumnami). Do tego czasu: hosting mapy i zadanie
+  viewera z nazwami gwiazd.
 
 Termin M2 przestał być twardy (D-012). Archiwum ESA jest wyłączone
 25.11 12:00 – 2.12 CET, ale **głównym serwisem pobierania jest AIP**

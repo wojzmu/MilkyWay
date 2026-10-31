@@ -1,0 +1,205 @@
+{
+ "dataset_id": "dr3_g15_p0.5_v3",
+ "summary": {
+  "h_pc": 331.0,
+  "h_stat_err_pc": 2.4,
+  "h_range_pc": [
+   316.4,
+   342.4
+  ],
+  "z_sun_pc": 23.7,
+  "z_sun_stat_err_pc": 0.6,
+  "z_sun_range_pc": [
+   16.7,
+   31.6
+  ],
+  "h_north_pc": 273.7,
+  "h_south_pc": 403.0,
+  "plan_target_pc": [
+   200,
+   450
+  ]
+ },
+ "selection": {
+  "r_max_pc": 250.0,
+  "z_max_pc": 500.0,
+  "bp_rp0_range": [
+   0.7,
+   1.1
+  ],
+  "abs_g0_max": 6.0,
+  "ms_delta_mag": [
+   -1.0,
+   1.0
+  ],
+  "n_cylinder": 1821484
+ },
+ "model": "n(z) ~ exp(-|z + z_sun| / h), unbinned ML on both fit windows",
+ "fits": {
+  "main": {
+   "h_pc": 330.9500000000068,
+   "h_err_pc": 2.3500000000005343,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "both",
+   "n_north": 137384,
+   "n_south": 158552,
+   "z_sun_pc": 23.700000000000145,
+   "z_sun_err_pc": 0.6250000000000089,
+   "z_sun_fixed": false,
+   "n_sample": 605241
+  },
+  "window_100_400": {
+   "h_pc": 322.0000000000068,
+   "h_err_pc": 2.050000000000466,
+   "window_pc": [
+    100.0,
+    400.0
+   ],
+   "side": "both",
+   "n_north": 163561,
+   "n_south": 181422,
+   "z_sun_pc": 16.699999999999964,
+   "z_sun_err_pc": 0.5249999999999968,
+   "z_sun_fixed": false,
+   "n_sample": 605241
+  },
+  "window_200_500": {
+   "h_pc": 342.4000000000069,
+   "h_err_pc": 2.700000000000614,
+   "window_pc": [
+    200.0,
+    500.0
+   ],
+   "side": "both",
+   "n_north": 115789,
+   "n_south": 139209,
+   "z_sun_pc": 31.550000000000143,
+   "z_sun_err_pc": 0.7000000000000117,
+   "z_sun_fixed": false,
+   "n_sample": 605241
+  },
+  "z_sun_fixed_20.8": {
+   "h_pc": 328.4000000000069,
+   "h_err_pc": 2.2500000000005116,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "both",
+   "n_north": 137384,
+   "n_south": 158552,
+   "z_sun_pc": 20.8,
+   "z_sun_err_pc": 0.0,
+   "z_sun_fixed": true,
+   "n_sample": 605241
+  },
+  "north_only": {
+   "h_pc": 273.70000000000675,
+   "h_err_pc": 2.4000000000005457,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "north",
+   "n_north": 137384,
+   "n_south": 0,
+   "z_sun_pc": 20.8,
+   "z_sun_err_pc": 0.0,
+   "z_sun_fixed": true,
+   "n_sample": 605241
+  },
+  "south_only": {
+   "h_pc": 402.9500000000068,
+   "h_err_pc": 4.75000000000108,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "south",
+   "n_north": 0,
+   "n_south": 158552,
+   "z_sun_pc": 20.8,
+   "z_sun_err_pc": 0.0,
+   "z_sun_fixed": true,
+   "n_sample": 605241
+  },
+  "G_dwarfs_0.70_0.90": {
+   "h_pc": 342.2500000000069,
+   "h_err_pc": 3.2750000000007446,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "both",
+   "n_north": 80224,
+   "n_south": 92203,
+   "z_sun_pc": 23.80000000000014,
+   "z_sun_err_pc": 0.8250000000000117,
+   "z_sun_fixed": false,
+   "n_sample": 347758
+  },
+  "early_K_0.90_1.10": {
+   "h_pc": 316.4000000000069,
+   "h_err_pc": 3.3500000000007617,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "both",
+   "n_north": 57160,
+   "n_south": 66349,
+   "z_sun_pc": 23.600000000000144,
+   "z_sun_err_pc": 0.9250000000000131,
+   "z_sun_fixed": false,
+   "n_sample": 257483
+  },
+  "R_lt_150": {
+   "h_pc": 329.05000000000683,
+   "h_err_pc": 3.9000000000008868,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "both",
+   "n_north": 49426,
+   "n_south": 56787,
+   "z_sun_pc": 22.85000000000014,
+   "z_sun_err_pc": 1.0250000000000146,
+   "z_sun_fixed": false,
+   "n_sample": 218026
+  },
+  "M_G_le_5": {
+   "h_pc": 330.3500000000069,
+   "h_err_pc": 3.3000000000007503,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "both",
+   "n_north": 69756,
+   "n_south": 80472,
+   "z_sun_pc": 23.600000000000144,
+   "z_sun_err_pc": 0.8500000000000121,
+   "z_sun_fixed": false,
+   "n_sample": 305778
+  },
+  "no_dust_correction": {
+   "h_pc": 337.70000000000675,
+   "h_err_pc": 2.450000000000557,
+   "window_pc": [
+    150.0,
+    450.0
+   ],
+   "side": "both",
+   "n_north": 136483,
+   "n_south": 156133,
+   "z_sun_pc": 22.700000000000145,
+   "z_sun_err_pc": 0.6250000000000089,
+   "z_sun_fixed": false,
+   "n_sample": 584051
+  }
+ }
+}

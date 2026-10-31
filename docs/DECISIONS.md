@@ -11,6 +11,28 @@ decyzja — dopisz.
 
 ---
 
+## D-025 · 2026-10-31 · Orientacyjna wysokość skali (M5): h ≈ 331 pc
+**Decyzja:**
+- `milkyway/scale_height.py`, `--dataset ID --scale-height DIR`. Walec
+  R < 250 pc, |z| ≤ 500 pc; karły z kolorem i jasnością po korekcie pyłu
+  (D-024): 0,70 ≤ BP−RP₀ < 1,10 (~6170–5070 K, od późnych F do ~K2),
+  M_G₀ ≤ 6 (D-014), najwyżej ±1 mag od grzbietu MS (`classify._MS_*`).
+- Model n(z) ∝ exp(−|z + z☉|/h), największa wiarygodność bez binowania
+  na oknach 150 < |z| < 450 pc, h i z☉ razem (z☉ z symetrii N–S, plan
+  §4). Siatka w numpy (scipy nie jest zależnością). Warianty systematyki:
+  okna 100–400 i 200–500, z☉ = 20,8, osobno G i wczesne K, R < 150,
+  M_G₀ ≤ 5, bez pyłu; osobno fity jednostronne (z☉ = 20,8).
+- Wynik w `docs/data/scale_height.json` i `.png` (w repo, bo mały).
+**Wynik:** 605 241 gwiazd; **h = 331,0 ± 2,4 pc** (stat.), warianty
+316–342 pc; z☉ = 23,7 ± 0,6 pc (warianty 17–32). Mieści się w celu
+200–450 pc. Fity jednostronne: północ 274 pc, południe 403 pc.
+**Dlaczego:** kompletność sprawdzona na danych (maks. G próbki 14,79;
+0,02% gwiazd przy |z| = 400–450 pc ma A_G > 0,44 mag). h rośnie z oknem
+(ślad dysku grubego). Asymetrii N–S (znanej z literatury: fale pionowe)
+1.0 nie modeluje, więc wynik jest „orientacyjny”, a z☉ to parametr fitu,
+nie pomiar. Dokument: `docs/JAK_MIERZYMY_DYSK.md`.
+**Źródło:** sesja Claude Code (M5), 31.10.2026.
+
 ## D-024 · 2026-10-31 · Pył z mapy Edenhofer 2024 (M5, schemat v3)
 **Decyzja:**
 - Mapa: `mean_and_std_healpix.fits` (Zenodo 8187943, 3,25 GB, MD5

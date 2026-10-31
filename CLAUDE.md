@@ -255,6 +255,16 @@ npm run preview   # serve the production build
   `default` → first entry, persisting the choice back to both. `VITE_DATASET_FILE`
   survives only as the fallback when the manifest can't be fetched.
 
+- **Binary point-cloud mode (M4, D-021)** — a manifest entry with `"format": "bin"`
+  (or a `.json` file) points at an `index.json` written by
+  `python MilkyWay.py --dataset ID --export-viewer web/public/map_1250pc`
+  (git-ignored, ~60 MB). [loadPointCloud.ts](web/src/data/loadPointCloud.ts) reads
+  `points.bin` whole and `details.bin` one 24 B record per click (HTTP Range);
+  [GalaxyField3D.tsx](web/src/components/GalaxyField3D.tsx) draws ~1.5 M points
+  with one ShaderMaterial: every filter (distance, uncertainty, class, brightness,
+  points shown via drawRange) is a uniform, never a per-point JS object. The HR
+  diagram is disabled for bin datasets.
+
 > The `web/public/*psc.csv` files are the user's own working datasets — **leave
 > them alone** (don't regenerate, overwrite, or "fix" them). They carry extra
 > columns beyond the pipeline output (`star_class`, `sp_type`, `mass_flame`,

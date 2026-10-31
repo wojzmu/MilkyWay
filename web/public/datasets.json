@@ -15,6 +15,12 @@
       "file": "nearby_stars_merged_20psc.csv",
       "label": "All stars within 20 pc",
       "description": "Dense local sample out to 20 pc."
+    },
+    {
+      "file": "map_1250pc/index.json",
+      "format": "bin",
+      "label": "Galactic disc — 1.25 kpc (1.5 M stars)",
+      "description": "Gaia DR3 G < 15 within 1250 pc, zero-point-corrected distances, thinned to ~1.5 million stars."
     }
   ]
 }

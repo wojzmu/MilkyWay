@@ -9,13 +9,20 @@ import {
   isFiltered,
 } from "./filters";
 import { loadStars } from "./data/loadStars";
+import { loadPointCloud, type PointCloud } from "./data/loadPointCloud";
 import {
   loadDatasetManifest,
   resolveInitialDataset,
   rememberDataset,
+  isBinDataset,
   type DatasetMeta,
 } from "./data/datasets";
 import StarField3D from "./components/StarField3D";
+import GalaxyField3D, { type CloudSettings } from "./components/GalaxyField3D";
+import PointDetails from "./components/PointDetails";
+import CloudControls from "./components/CloudControls";
+import { defaultCloudUi, type CloudUi } from "./cloudUi";
+import { CATEGORY_ORDER } from "./categories";
 import HRDiagram from "./components/HRDiagram";
 import StarDetails from "./components/StarDetails";
 import Legend from "./components/Legend";
@@ -35,6 +42,13 @@ export default function App() {
   const [view, setView] = useState<View>("3d");
   const [colorMode, setColorMode] = useState<ColorMode>("trueColor");
   const [selected, setSelected] = useState<Star | null>(null);
+
+  // Binary point-cloud mode (datasets with format "bin").
+  const [cloud, setCloud] = useState<PointCloud | null>(null);
+  const [loadedKind, setLoadedKind] = useState<"csv" | "bin">("csv");
+  const [cloudUi, setCloudUi] = useState<CloudUi>(defaultCloudUi(1250));
+  const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
+  const [progress, setProgress] = useState("");
 
   const [datasets, setDatasets] = useState<DatasetMeta[]>([]);
   const [datasetFile, setDatasetFile] = useState<string | null>(null);
@@ -60,13 +74,30 @@ export default function App() {
     let ignore = false;
     setStatus("loading");
     setSelected(null);
-    loadStars(datasetFile)
-      .then((data) => {
+    setSelectedPoint(null);
+    setProgress("");
+    const meta = datasets.find((d) => d.file === datasetFile);
+    const request: Promise<() => void> = isBinDataset(meta)
+      ? loadPointCloud(datasetFile, (t) => !ignore && setProgress(t)).then(
+          (pc) => () => {
+            setCloud(pc);
+            setCloudUi(
+              defaultCloudUi(pc.index.selection?.dist_pc_max ?? 1250),
+            );
+            setLoadedKind("bin");
+          },
+        )
+      : loadStars(datasetFile).then((data) => () => {
+          const d = computeDomains(data);
+          setStars(data);
+          setDomains(d);
+          setFilters(defaultFilters(d));
+          setLoadedKind("csv");
+        });
+    request
+      .then((apply) => {
         if (ignore) return;
-        const d = computeDomains(data);
-        setStars(data);
-        setDomains(d);
-        setFilters(defaultFilters(d));
+        apply();
         setStatus("ready");
       })
       .catch((e: unknown) => {
@@ -77,7 +108,7 @@ export default function App() {
     return () => {
       ignore = true;
     };
-  }, [datasetFile]);
+  }, [datasetFile, datasets]);
 
   const handleDatasetChange = (file: string) => {
     if (file === datasetFile) return;
@@ -113,10 +144,56 @@ export default function App() {
 
   const active = filters && domains ? isFiltered(filters, domains) : false;
 
+  const isBin = loadedKind === "bin" && cloud !== null;
+  const cloudMaxDist = cloud?.index.selection?.dist_pc_max ?? 1250;
+
   const theFarestDistance = useMemo(() => {
+    if (isBin) return Math.round(cloudMaxDist * 3.26156);
     if (stars.length === 0) return null;
     return Math.max(...stars.map((s) => s.distPc ? Math.round(s.distPc) : 0));
-  }, [stars]);
+  }, [stars, isBin, cloudMaxDist]);
+
+  const cloudSettings = useMemo<CloudSettings>(() => {
+    let mask = 0;
+    cloud?.classCodes.forEach((name, code) => {
+      if (!cloudUi.hidden.includes(name)) mask |= 1 << code;
+    });
+    return {
+      distMax: cloudUi.distMax,
+      fMax: cloudUi.fMax,
+      fraction: cloudUi.percent / 100,
+      pointSize: cloudUi.pointSize,
+      brightness: cloudUi.brightness,
+      classMask: mask,
+    };
+  }, [cloud, cloudUi]);
+
+  // Per-class totals and the number of points currently drawn.
+  const cloudClassCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (!cloud) return counts;
+    const per = new Array<number>(cloud.classCodes.length).fill(0);
+    for (let i = 0; i < cloud.n; i++) per[cloud.classes[i]]++;
+    cloud.classCodes.forEach((name, code) => (counts[name] = per[code]));
+    return counts;
+  }, [cloud]);
+
+  const cloudDrawn = useMemo(() => {
+    if (!cloud) return 0;
+    const k = Math.max(1, Math.round(cloudSettings.fraction * cloud.n));
+    const d2 = cloudSettings.distMax ** 2;
+    const pos = cloud.positions;
+    let c = 0;
+    for (let i = 0; i < k; i++) {
+      const x = pos[3 * i];
+      const y = pos[3 * i + 1];
+      const z = pos[3 * i + 2];
+      if (x * x + y * y + z * z > d2) continue;
+      if (((cloudSettings.classMask >> cloud.classes[i]) & 1) === 0) continue;
+      c++;
+    }
+    return c;
+  }, [cloud, cloudSettings]);
 
   return (
     <div className="app">
@@ -140,12 +217,21 @@ export default function App() {
 
           {status === "ready" && (
             <span className="count">
-              {filteredStars.length.toLocaleString()}
-              {active && ` / ${stars.length.toLocaleString()}`} stars
+              {isBin && cloud ? (
+                <>
+                  {cloudDrawn.toLocaleString()} / {cloud.n.toLocaleString()}
+                </>
+              ) : (
+                <>
+                  {filteredStars.length.toLocaleString()}
+                  {active && ` / ${stars.length.toLocaleString()}`}
+                </>
+              )}{" "}
+              stars
             </span>
           )}
 
-          {status === "ready" && (
+          {status === "ready" && !isBin && (
             <button
               className={`filterbtn${active ? " filterbtn--active" : ""}`}
               onClick={() => setFiltersOpen((o) => !o)}
@@ -172,18 +258,22 @@ export default function App() {
 
           <div className="viewtoggle" role="tablist">
             <button
-              className={view === "3d" ? "active" : ""}
+              className={view === "3d" || isBin ? "active" : ""}
               onClick={() => setView("3d")}
               role="tab"
-              aria-selected={view === "3d"}
+              aria-selected={view === "3d" || isBin}
             >
               3D Map
             </button>
             <button
-              className={view === "hr" ? "active" : ""}
+              className={view === "hr" && !isBin ? "active" : ""}
               onClick={() => setView("hr")}
               role="tab"
-              aria-selected={view === "hr"}
+              aria-selected={view === "hr" && !isBin}
+              disabled={isBin}
+              title={
+                isBin ? "HR diagram is available for CSV datasets" : undefined
+              }
             >
               HR Diagram
             </button>
@@ -199,7 +289,7 @@ export default function App() {
           </button>
         </div>
 
-        {filtersOpen && filters && domains && (
+        {filtersOpen && !isBin && filters && domains && (
           <FilterPanel
             filters={filters}
             domains={domains}
@@ -214,14 +304,47 @@ export default function App() {
 
       <main className="stage">
         {status === "loading" && (
-          <div className="overlay">Loading catalogue…</div>
+          <div className="overlay">{progress || "Loading catalogue…"}</div>
         )}
         {status === "error" && (
           <div className="overlay overlay--error">
             Failed to load dataset: {error}
           </div>
         )}
-        {status === "ready" && (
+        {status === "ready" && isBin && cloud && (
+          <>
+            <div className="viewport">
+              <GalaxyField3D
+                cloud={cloud}
+                settings={cloudSettings}
+                colorMode={colorMode}
+                selected={selectedPoint}
+                onSelect={setSelectedPoint}
+              />
+              <CloudControls
+                ui={cloudUi}
+                maxDist={cloudMaxDist}
+                counts={cloudClassCounts}
+                onChange={setCloudUi}
+              />
+              {colorMode === "category" && (
+                <Legend
+                  counts={Object.fromEntries(
+                    CATEGORY_ORDER.filter(
+                      (c) => !cloudUi.hidden.includes(c),
+                    ).map((c) => [c, cloudClassCounts[c] ?? 0]),
+                  )}
+                />
+              )}
+            </div>
+            <PointDetails
+              cloud={cloud}
+              index={selectedPoint}
+              onClose={() => setSelectedPoint(null)}
+            />
+          </>
+        )}
+        {status === "ready" && !isBin && (
           <>
             <div className="viewport">
               {view === "3d" ? (

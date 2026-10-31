@@ -34,7 +34,7 @@ map_xz.png
 Thumbs.db
 
 # local Parquet store + frozen reference (never committed)
-data/
+/data/
 .pytest_cache/
 
 # Binary viewer exports (M4): generated, ~60 MB each

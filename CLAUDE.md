@@ -20,6 +20,22 @@ Two parts that share one dataset:
 > Note: `Dataset.md` refers to the script as `nearby_stars_pipeline.py`; the
 > actual file is `MilkyWay.py`. Same pipeline.
 
+## Plan i decyzje (czytaj przed pracą)
+
+@docs/PLAN_MAPA_1.0.md
+@docs/DECISIONS.md
+
+- Pracujemy według `docs/PLAN_MAPA_1.0.md`. Plan v4 w `docs/plan-v4/` to
+  praca na później — sięgaj do niego po szczegóły (np. segment S3 przy
+  pobieraniu), ale nie rozszerzaj zakresu bez wpisu w `docs/DECISIONS.md`.
+- Gdy zmieniasz zakres, próg selekcji, metodę albo kolumny katalogu, dopisz
+  wpis do `docs/DECISIONS.md` w tym samym PR (format na górze pliku).
+- Gdy coś w planie okazuje się nieprawdziwe (np. zmierzona liczba wierszy,
+  nazwa kolumny w DR4), popraw plan i dopisz decyzję zamiast obchodzić
+  problem w kodzie.
+- Twardy termin: pobranie danych DR3 przed 25.11.2026 12:00 CET
+  (wyłączenie archiwum ESA do 2.12; zapas: AIP `gaia.aip.de`).
+
 ## Commands
 
 ```bash

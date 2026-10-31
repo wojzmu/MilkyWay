@@ -74,7 +74,8 @@ Termin M2 przestał być twardy (D-012). Archiwum ESA jest wyłączone
 (`gaia.aip.de/tap`): sprawdzone 31.10 — pełna `gaiadr3.gaia_source`
 (153 kolumny), dostęp anonimowy, kolejka `QUEUE=2h` przyjmowana bez konta,
 COUNT po całej selekcji w 5,5 min. ESA tego dnia zwróciło HTTP 500 i timeout,
-więc jest zapasem, a nie podstawą. Pobranie przed 25.11 pozostaje celem, bo
+więc jest zapasem, a nie podstawą. Trzecim zapasem, niezależnym od TAP, jest
+kopia HATS z LSDB (~190 GB transferu dla naszych kolumn, D-017). Pobranie przed 25.11 pozostaje celem, bo
 daje dwa działające serwisy na wypadek awarii AIP.
 
 ## 4. Orientacyjna wysokość skali (M5) — świadome uproszczenia

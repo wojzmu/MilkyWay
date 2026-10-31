@@ -11,6 +11,19 @@ decyzja — dopisz.
 
 ---
 
+## D-017 · 2026-10-31 · HATS (LSDB) jako zapas pobierania, nie główne źródło
+**Decyzja:** M2 pobiera przez TAP z AIP (D-012). Kopia Gaia DR3 w formacie
+HATS (`https://linea.data.lsdb.io/hats/gaia_dr3`, Parquet w pikselach
+HEALPix, 153 kolumny, 1,81·10⁹ wierszy) jest trzecim, niezależnym od
+serwisów TAP źródłem awaryjnym.
+**Dlaczego:** pliki HATS są posortowane po `source_id`, więc statystyki
+row-group nie odcinają G < 15; nasze 21 kolumn to ~107 B/wiersz, czyli
+~190 GB transferu wobec ~2,5 GB z TAP (filtr po stronie serwera). Zaleta:
+statyczne pliki HTTP, bez kolejek i awarii TAP, wznawialne. Kopie na
+Hugging Face sprawdzone 31.10: `astro-legacy-archive/gaia-dr3-source` w
+trakcie wgrywania, `MultimodalUniverse/gaia` to okrojony podzbiór.
+**Źródło:** pomiar stopki partycji HATS w sesji Claude Code, 31.10.2026.
+
 ## D-016 · 2026-10-31 · Uproszczona integralność magazynu w 1.0
 **Decyzja:** manifest trzyma `row_counts` i SHA-256 bajtów każdego pliku
 Parquet; pełny `canonical_hash` (S1 dec. 7, niezależny od wersji Arrow)

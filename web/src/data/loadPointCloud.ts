@@ -2,6 +2,9 @@
 // points.bin is fetched whole; details.bin (36 MB) is read lazily, one 24-byte
 // record at a time, with HTTP Range requests.
 
+/** Size of the shader's category-colour array (GalaxyField3D). */
+export const MAX_CLASSES = 9;
+
 export interface PointCloudIndex {
   n: number;
   class_codes: string[];
@@ -102,6 +105,9 @@ export async function loadPointCloud(
   const index = (await res.json()) as PointCloudIndex;
   if (typeof index.n !== "number" || !Array.isArray(index.class_codes)) {
     throw new Error(`${indexUrl}: malformed index.json`);
+  }
+  if (index.class_codes.length > MAX_CLASSES) {
+    throw new Error(`${indexUrl}: ${index.class_codes.length} classes, the viewer supports ${MAX_CLASSES}`);
   }
   const baseUrl = dirOf(indexUrl);
   const buf = await fetchBuffer(`${baseUrl}points.bin`, onProgress);

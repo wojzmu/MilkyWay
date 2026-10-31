@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
-import type { PointCloud } from "../data/loadPointCloud";
+import { MAX_CLASSES, type PointCloud } from "../data/loadPointCloud";
 import { NameLayout, NameOverlay, type NameLabel } from "./StarNames";
+import { SunMarker } from "./SunMarker";
 import { categoryColor, type ColorMode } from "../categories";
 
 export interface CloudSettings {
@@ -41,7 +42,7 @@ uniform float uFMax;
 uniform float uBrightness;
 uniform float uClassMask;
 uniform int uColorMode;
-uniform vec3 uCategoryColors[9];
+uniform vec3 uCategoryColors[${MAX_CLASSES}];
 attribute vec3 aColor;
 attribute float aU;
 attribute float aClass;
@@ -118,7 +119,7 @@ function CloudPoints({
   }, [cloud]);
 
   const material = useMemo(() => {
-    const cats = Array.from({ length: 9 }, (_, code) =>
+    const cats = Array.from({ length: MAX_CLASSES }, (_, code) =>
       new THREE.Color(categoryColor(cloud.classCodes[code] ?? "Unknown")),
     );
     return new THREE.ShaderMaterial({
@@ -167,20 +168,26 @@ function CloudPoints({
     material.uniforms.uColorMode.value = colorMode === "category" ? 1 : 0;
   }, [colorMode, material]);
 
+  const dpr = useThree((s) => s.viewport.dpr);
   useEffect(() => {
-    material.uniforms.uPixelRatio.value = gl.getPixelRatio();
-  }, [gl, material]);
+    material.uniforms.uPixelRatio.value = dpr;
+  }, [dpr, material]);
 
   // Click picking: the nearest point to the ray within ~8 px, honouring the
   // draw range, distance and class filters (uncertainty fade is ignored).
   useEffect(() => {
     const el = gl.domElement;
-    let down: { x: number; y: number } | null = null;
+    // A click is the primary button, pressed and released by one pointer,
+    // with no second pointer in between (that is a pinch, not a click).
+    let down: { x: number; y: number; id: number } | null = null;
     const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY };
+      down = e.button === 0 && !down ? { x: e.clientX, y: e.clientY, id: e.pointerId } : null;
     };
     const onUp = (e: PointerEvent) => {
-      if (!down) return;
+      if (!down || e.pointerId !== down.id) {
+        down = null;
+        return;
+      }
       const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
       down = null;
       if (moved > 4) return;
@@ -282,13 +289,7 @@ function Reference() {
   );
   return (
     <group>
-      <mesh renderOrder={2}>
-        <sphereGeometry args={[7, 16, 16]} />
-        <meshBasicMaterial color="#fff4cc" depthTest={false} />
-        <Html position={[0, 20, 0]} center>
-          <div className="star-label sun-label">Sun</div>
-        </Html>
-      </mesh>
+      <SunMarker depthTest={false} />
       {rings.map(({ r, geo }) => (
         <group key={r}>
           <lineLoop geometry={geo}>
@@ -373,8 +374,28 @@ export default function GalaxyField3D(props: Props) {
     [cloudLabels],
   );
   const shownRef = useRef<(i: number) => boolean>(() => false);
-  shownRef.current = (i) =>
-    props.settings.labels && cloudLabels[i].distPc <= props.settings.distMax;
+  const { labels: showNames, distMax, classMask, fraction } = props.settings;
+  const drawn = Math.max(1, Math.round(fraction * props.cloud.n));
+  // A label's point is selectable only while the filters draw it.
+  const pointShown = (p: number | null) =>
+    p !== null && p < drawn && classVisible(classMask, props.cloud.classes[p]);
+  // Drop the selection when the filters hide its point.
+  const { selected, onSelect, cloud } = props;
+  useEffect(() => {
+    if (selected === null) return;
+    const q = cloud.positions;
+    const r2 = q[3 * selected] ** 2 + q[3 * selected + 1] ** 2 + q[3 * selected + 2] ** 2;
+    const shown = selected < drawn && r2 <= distMax ** 2 &&
+      classVisible(classMask, cloud.classes[selected]);
+    if (!shown) onSelect(null);
+  }, [selected, onSelect, cloud, drawn, distMax, classMask]);
+  shownRef.current = (i) => {
+    const lb = cloudLabels[i];
+    if (!showNames || lb.distPc > distMax) return false;
+    // A star whose class is hidden loses its name too; one without a point
+    // (thinned out or not exported) keeps it.
+    return lb.point === null || classVisible(classMask, props.cloud.classes[lb.point]);
+  };
   return (
     <>
       <Canvas
@@ -396,7 +417,7 @@ export default function GalaxyField3D(props: Props) {
         <CameraRig apiRef={apiRef} />
         {labels.length > 0 && (
           <NameLayout labels={labels} elsRef={labelEls} shownRef={shownRef}
-                      reserve={[0, 20, 0]} />
+                      reserve={[0, 0, 0]} />
         )}
       </Canvas>
       <NameOverlay
@@ -404,7 +425,7 @@ export default function GalaxyField3D(props: Props) {
         elsRef={labelEls}
         onPick={(i) => {
           const p = cloudLabels[i].point;
-          if (p !== null) props.onSelect(p);
+          if (pointShown(p)) props.onSelect(p);
         }}
       />
       <div className="viewbtns" role="group" aria-label="Camera view">

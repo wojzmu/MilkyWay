@@ -11,6 +11,21 @@ decyzja — dopisz.
 
 ---
 
+## D-027 · 2026-10-31 · Nazwy gwiazd po angielsku; Słońce stałej wielkości
+**Decyzja:**
+- Podpisy gwiazd w viewerze po angielsku, jak cały interfejs („Sun”,
+  przyciski): kolumna `name` w `milkyway/star_names.csv` to nazwa IAU,
+  poza Alfą Centauri A i B („Alpha Centauri A/B” zamiast Rigil Kentaurus
+  i Toliman, które zostają w `name_iau` i w dymku). Zastępuje polskie
+  formy z D-026.
+- Znacznik Słońca ma stały rozmiar na ekranie (promień 4 px,
+  `web/src/components/SunMarker.tsx`) zamiast kuli o stałym promieniu
+  w scenie (7 pc na mapach 1,25 kpc, 0,18 pc w widoku CSV).
+**Dlaczego:** mieszanka polskich nazw z angielskim interfejsem była
+niespójna (uwaga użytkownika). Kula 7 pc po przybliżeniu zasłaniała
+sąsiednie gwiazdy.
+**Źródło:** rozmowa w sesji Claude Code, 31.10.2026.
+
 ## D-026 · 2026-10-31 · Nazwy znanych gwiazd na mapie
 **Decyzja:**
 - Lista `milkyway/star_names.csv` (102 gwiazdy): każda gwiazda z IAU

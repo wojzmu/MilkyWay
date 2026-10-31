@@ -3,7 +3,7 @@
 // the Canvas; a component inside it projects them every frame and lays them out
 // greedily, best known first, hiding any label that would overlap one already
 // placed. Zooming out therefore leaves only the famous names.
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -32,13 +32,26 @@ export function NameLayout({
   elsRef: React.RefObject<(HTMLDivElement | null)[]>;
   /** shownRef.current(i): may label i be shown at all (filters, toggle). */
   shownRef: React.RefObject<(i: number) => boolean>;
-  /** A scene point whose ~40 x 20 px screen box stays free (the Sun's label). */
+  /** The Sun's scene position: its dot and the label just above stay free. */
   reserve?: [number, number, number];
 }) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
   const v = useMemo(() => new THREE.Vector3(), []);
-  const widths = useRef<number[]>([]);
+  // Label box sizes by key, measured once per label: reading offsetWidth after
+  // a style write would force a layout per label per frame. Cleared when the
+  // web font arrives, since it changes the widths.
+  const sizes = useRef(new Map<string | number, [number, number]>());
+  // Last transform written per node (null = hidden), so a still camera writes
+  // nothing. Keyed by node: when the label list changes, indices move.
+  const last = useRef(new WeakMap<HTMLElement, string | null>());
+  useEffect(() => {
+    let live = true;
+    document.fonts?.ready.then(() => live && sizes.current.clear());
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useFrame(() => {
     const els = elsRef.current;
@@ -49,7 +62,7 @@ export function NameLayout({
       if (v.z < 1) {
         const sx = ((v.x + 1) / 2) * size.width;
         const sy = ((1 - v.y) / 2) * size.height;
-        placed.push(sx - 20, sy - 10, sx + 20, sy + 10);
+        placed.push(sx - 20, sy - 26, sx + 20, sy + 6);
       }
     }
     for (let i = 0; i < labels.length; i++) {
@@ -64,10 +77,15 @@ export function NameLayout({
         show = v.z < 1 && Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1;
       }
       if (show) {
+        let wh = sizes.current.get(lb.key);
+        if (!wh) {
+          // Measured while hidden (visibility keeps the layout box).
+          wh = [el.offsetWidth, el.offsetHeight || 16];
+          if (wh[0] > 0) sizes.current.set(lb.key, wh);
+        }
+        const [w, h] = wh;
         const x = ((v.x + 1) / 2) * size.width;
         const y = ((1 - v.y) / 2) * size.height;
-        const w = (widths.current[i] ||= el.offsetWidth);
-        const h = el.offsetHeight || 16;
         x0 = x - w / 2;
         y0 = y - h - 6; // just above the star
         const x1 = x0 + w;
@@ -81,8 +99,11 @@ export function NameLayout({
         }
         if (show) placed.push(x0, y0, x1, y1);
       }
+      const t = show ? `translate(${x0.toFixed(1)}px, ${y0.toFixed(1)}px)` : null;
+      if (last.current.get(el) === t) continue;
+      last.current.set(el, t);
       el.style.visibility = show ? "visible" : "hidden";
-      if (show) el.style.transform = `translate(${x0.toFixed(1)}px, ${y0.toFixed(1)}px)`;
+      if (t) el.style.transform = t;
     }
   });
   return null;

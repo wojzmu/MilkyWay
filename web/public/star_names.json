@@ -6,7 +6,7 @@
 "names": [
 {
 "hip": 32349,
-"name": "Syriusz",
+"name": "Sirius",
 "name_iau": "Sirius",
 "v_mag": -1.45,
 "tier": 1,
@@ -16,7 +16,7 @@
 },
 {
 "hip": 30438,
-"name": "Kanopus",
+"name": "Canopus",
 "name_iau": "Canopus",
 "v_mag": -0.62,
 "tier": 1,
@@ -26,7 +26,7 @@
 },
 {
 "hip": 69673,
-"name": "Arktur",
+"name": "Arcturus",
 "name_iau": "Arcturus",
 "v_mag": -0.05,
 "tier": 1,
@@ -36,7 +36,7 @@
 },
 {
 "hip": 71683,
-"name": "Alfa Centauri A",
+"name": "Alpha Centauri A",
 "name_iau": "Rigil Kentaurus",
 "v_mag": -0.01,
 "tier": 1,
@@ -46,7 +46,7 @@
 },
 {
 "hip": 91262,
-"name": "Wega",
+"name": "Vega",
 "name_iau": "Vega",
 "v_mag": 0.03,
 "tier": 1,
@@ -56,7 +56,7 @@
 },
 {
 "hip": 24608,
-"name": "Kapella",
+"name": "Capella",
 "name_iau": "Capella",
 "v_mag": 0.08,
 "tier": 1,
@@ -76,7 +76,7 @@
 },
 {
 "hip": 37279,
-"name": "Procjon",
+"name": "Procyon",
 "name_iau": "Procyon",
 "v_mag": 0.4,
 "tier": 1,
@@ -96,7 +96,7 @@
 },
 {
 "hip": 27989,
-"name": "Betelgeza",
+"name": "Betelgeuse",
 "name_iau": "Betelgeuse",
 "v_mag": 0.45,
 "tier": 1,
@@ -126,7 +126,7 @@
 },
 {
 "hip": 65474,
-"name": "Spika",
+"name": "Spica",
 "name_iau": "Spica",
 "v_mag": 0.98,
 "tier": 1,
@@ -146,7 +146,7 @@
 },
 {
 "hip": 37826,
-"name": "Polluks",
+"name": "Pollux",
 "name_iau": "Pollux",
 "v_mag": 1.16,
 "tier": 1,
@@ -216,7 +216,7 @@
 },
 {
 "hip": 36850,
-"name": "Kastor",
+"name": "Castor",
 "name_iau": "Castor",
 "v_mag": 1.98,
 "tier": 1,
@@ -237,7 +237,7 @@
 },
 {
 "hip": 11767,
-"name": "Gwiazda Polarna",
+"name": "Polaris",
 "name_iau": "Polaris",
 "v_mag": 2.13,
 "tier": 1,
@@ -279,7 +279,7 @@
 },
 {
 "hip": 87937,
-"name": "Gwiazda Barnarda",
+"name": "Barnard's Star",
 "name_iau": "Barnard's Star",
 "v_mag": 9.54,
 "tier": 1,
@@ -311,7 +311,7 @@
 },
 {
 "hip": 62434,
-"name": "Mimoza",
+"name": "Mimosa",
 "name_iau": "Mimosa",
 "v_mag": 1.25,
 "tier": 2,
@@ -331,7 +331,7 @@
 },
 {
 "hip": 71681,
-"name": "Alfa Centauri B",
+"name": "Alpha Centauri B",
 "name_iau": "Toliman",
 "v_mag": 1.35,
 "tier": 2,
@@ -976,7 +976,7 @@
 },
 {
 "hip": 17702,
-"name": "Alkione",
+"name": "Alcyone",
 "name_iau": "Alcyone",
 "v_mag": 2.85,
 "tier": 3,
@@ -1041,7 +1041,7 @@
 },
 {
 "hip": 65477,
-"name": "Alkor",
+"name": "Alcor",
 "name_iau": "Alcor",
 "v_mag": 3.99,
 "tier": 3,

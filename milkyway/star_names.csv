@@ -1,43 +1,43 @@
 # Named stars labelled on the viewer map (D-026).
 # name_iau, hip, v_mag: IAU Catalog of Star Names (WGSN, 2022-04-04),
 #   https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt (CC BY 4.0, IAU).
-# name: Polish form where one is in common use, else the IAU name.
+# name: English form where it differs from the IAU name in common use, else the IAU name.
 # Selection: every WGSN star with V <= 2.5, plus 17 famous fainter ones.
 # tier: 1 best known, 2 V <= 1.6, 3 rest; the viewer keeps lower tiers when labels collide.
 hip,name,name_iau,v_mag,tier
-32349,Syriusz,Sirius,-1.45,1
-30438,Kanopus,Canopus,-0.62,1
-69673,Arktur,Arcturus,-0.05,1
-71683,Alfa Centauri A,Rigil Kentaurus,-0.01,1
-91262,Wega,Vega,0.03,1
-24608,Kapella,Capella,0.08,1
+32349,Sirius,Sirius,-1.45,1
+30438,Canopus,Canopus,-0.62,1
+69673,Arcturus,Arcturus,-0.05,1
+71683,Alpha Centauri A,Rigil Kentaurus,-0.01,1
+91262,Vega,Vega,0.03,1
+24608,Capella,Capella,0.08,1
 24436,Rigel,Rigel,0.18,1
-37279,Procjon,Procyon,0.4,1
+37279,Procyon,Procyon,0.4,1
 7588,Achernar,Achernar,0.45,1
-27989,Betelgeza,Betelgeuse,0.45,1
+27989,Betelgeuse,Betelgeuse,0.45,1
 97649,Altair,Altair,0.76,1
 21421,Aldebaran,Aldebaran,0.87,1
-65474,Spika,Spica,0.98,1
+65474,Spica,Spica,0.98,1
 80763,Antares,Antares,1.06,1
-37826,Polluks,Pollux,1.16,1
+37826,Pollux,Pollux,1.16,1
 113368,Fomalhaut,Fomalhaut,1.17,1
 102098,Deneb,Deneb,1.25,1
 49669,Regulus,Regulus,1.36,1
 25336,Bellatrix,Bellatrix,1.64,1
 26311,Alnilam,Alnilam,1.69,1
 26727,Alnitak,Alnitak,1.74,1
-36850,Kastor,Castor,1.98,1
+36850,Castor,Castor,1.98,1
 14576,Algol,Algol,2.09,1
-11767,Gwiazda Polarna,Polaris,2.13,1
+11767,Polaris,Polaris,2.13,1
 65378,Mizar,Mizar,2.23,1
 25930,Mintaka,Mintaka,2.25,1
 10826,Mira,Mira,6.47,1
-87937,Gwiazda Barnarda,Barnard's Star,9.54,1
+87937,Barnard's Star,Barnard's Star,9.54,1
 70890,Proxima Centauri,Proxima Centauri,11.01,1
 68702,Hadar,Hadar,0.61,2
-62434,Mimoza,Mimosa,1.25,2
+62434,Mimosa,Mimosa,1.25,2
 60718,Acrux,Acrux,1.33,2
-71681,Alfa Centauri B,Toliman,1.35,2
+71681,Alpha Centauri B,Toliman,1.35,2
 33579,Adhara,Adhara,1.5,2
 61084,Gacrux,Gacrux,1.59,2
 25428,Elnath,Elnath,1.65,3
@@ -100,10 +100,10 @@ hip,name,name_iau,v_mag,tier
 8903,Sheratan,Sheratan,2.7,3
 97278,Tarazed,Tarazed,2.72,3
 72622,Zubenelgenubi,Zubenelgenubi,2.75,3
-17702,Alkione,Alcyone,2.85,3
+17702,Alcyone,Alcyone,2.85,3
 63608,Vindemiatrix,Vindemiatrix,2.85,3
 59774,Megrez,Megrez,3.32,3
 95947,Albireo,Albireo,3.37,3
 84345,Rasalgethi,Rasalgethi,3.37,3
 68756,Thuban,Thuban,3.67,3
-65477,Alkor,Alcor,3.99,3
+65477,Alcor,Alcor,3.99,3

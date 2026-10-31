@@ -159,7 +159,9 @@ export default function App() {
   const theFarestDistance = useMemo(() => {
     if (isBin) return Math.round(cloudMaxDist * 3.26156);
     if (stars.length === 0) return null;
-    return Math.max(...stars.map((s) => s.distPc ? Math.round(s.distPc) : 0));
+    let max = 0;
+    for (const s of stars) if (s.distPc && s.distPc > max) max = s.distPc;
+    return Math.round(max * 3.26156);
   }, [stars, isBin, cloudMaxDist]);
 
   const cloudSettings = useMemo<CloudSettings>(() => {
@@ -188,10 +190,13 @@ export default function App() {
     return counts;
   }, [cloud]);
 
+  // Only the settings that change which points are drawn, so dragging the
+  // brightness or size sliders does not rescan 1.5 M points.
+  const { fraction, distMax, classMask } = cloudSettings;
   const cloudDrawn = useMemo(() => {
     if (!cloud) return 0;
-    const k = Math.max(1, Math.round(cloudSettings.fraction * cloud.n));
-    const d2 = cloudSettings.distMax ** 2;
+    const k = Math.max(1, Math.round(fraction * cloud.n));
+    const d2 = distMax ** 2;
     const pos = cloud.positions;
     let c = 0;
     for (let i = 0; i < k; i++) {
@@ -199,11 +204,11 @@ export default function App() {
       const y = pos[3 * i + 1];
       const z = pos[3 * i + 2];
       if (x * x + y * y + z * z > d2) continue;
-      if (((cloudSettings.classMask >> cloud.classes[i]) & 1) === 0) continue;
+      if (((classMask >> cloud.classes[i]) & 1) === 0) continue;
       c++;
     }
     return c;
-  }, [cloud, cloudSettings]);
+  }, [cloud, fraction, distMax, classMask]);
 
   return (
     <div className="app">

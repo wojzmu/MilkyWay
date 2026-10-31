@@ -86,7 +86,7 @@ niepołączonej `m1-magazyn`):
   (D-023; konto i wgranie po stronie użytkownika), potem pełne URL-e
   w `web/public/datasets.json` i merge do `master`.
 - **Zadanie viewera: nazwy znanych gwiazd** — **zrobione** (D-026):
-  102 gwiazdy z listy IAU, polskie formy, `labels.json` w obu mapach,
+  102 gwiazdy z listy IAU, nazwy po angielsku (D-027), `labels.json` w obu mapach,
   ukrywanie przy tłoku; opis w `JAK_RYSUJEMY_MAPE.md` §8.
 - **Następny: M6** — przejście na DR4, gdy będzie dostępne (sprawdzić
   OP-1: gdzie i z jakimi kolumnami). Do tego czasu: hosting mapy.

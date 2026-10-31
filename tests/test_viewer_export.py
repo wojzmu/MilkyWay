@@ -131,7 +131,7 @@ def test_labels(dataset, tmp_path):
 def test_star_names_file():
     names = ve.load_star_names()
     assert len(names) == 102
-    assert {"Syriusz", "Betelgeza", "Wega", "Gwiazda Polarna"} <= {n["name"] for n in names}
+    assert {"Sirius", "Betelgeuse", "Vega", "Polaris", "Alpha Centauri A"} <= {n["name"] for n in names}
     assert names[0]["name_iau"] == "Sirius" and names[0]["tier"] == 1
 
 

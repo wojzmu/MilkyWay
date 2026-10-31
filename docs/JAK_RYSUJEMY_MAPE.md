@@ -120,9 +120,11 @@ czyli 17 razy mniej.
 Na mapie podpisujemy **102 gwiazdy**: wszystkie gwiazdy z oficjalnego
 katalogu nazw IAU jaśniejsze niż V = 2,5 (85) oraz 17 słynnych słabszych,
 np. Proxima Centauri, Gwiazda Barnarda i Mira. Lista jest w
-`milkyway/star_names.csv`; tam, gdzie po polsku używa się innej formy,
-podpis jest polski (Syriusz, Betelgeza, Wega, Gwiazda Polarna…). Decyzja:
-D-026.
+`milkyway/star_names.csv`. Podpisy są po angielsku, jak cały interfejs
+(Sirius, Betelgeuse, Vega, Polaris…): to nazwy IAU, a tylko dla Alfy
+Centauri A i B dajemy angielską formę „Alpha Centauri A/B” zamiast
+mniej znanych Rigil Kentaurus i Toliman (te widać w dymku). Decyzje:
+D-026, D-027.
 
 **Jak trafiamy na gwiazdę.** Każda nazwa ma numer z katalogu Hipparcosa
 (HIP), a nasz katalog ma kolumnę `hip`. Tak znajdujemy wszystkie 102.

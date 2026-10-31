@@ -5,6 +5,7 @@ import * as THREE from "three";
 import type { Star } from "../types";
 import { categoryColor, type ColorMode } from "../categories";
 import { NameLayout, NameOverlay, type NameLabel, type StarName } from "./StarNames";
+import { SunMarker } from "./SunMarker";
 
 interface Props {
   stars: Star[];
@@ -314,13 +315,7 @@ export default function StarField3D(props: Props) {
       <ambientLight intensity={0.6} />
 
       {/* The Sun at the origin */}
-      <mesh>
-        <sphereGeometry args={[0.18, 16, 16]} />
-        <meshBasicMaterial color="#fff4cc" />
-        <Html distanceFactor={20} position={[0, 0.6, 0]} center>
-          <div className="star-label sun-label">Sun</div>
-        </Html>
-      </mesh>
+      <SunMarker />
 
       <StarPoints {...props} />
 
@@ -329,7 +324,7 @@ export default function StarField3D(props: Props) {
       <KeyboardNav controls={controls} />
       {labels.length > 0 && (
         <NameLayout labels={labels} elsRef={labelEls} shownRef={shownRef}
-                    reserve={[0, 0.6, 0]} />
+                    reserve={[0, 0, 0]} />
       )}
     </Canvas>
     <NameOverlay labels={labels} elsRef={labelEls}

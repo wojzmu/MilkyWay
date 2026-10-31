@@ -338,6 +338,7 @@
 .sun-label {
   border-color: #fff4cc55;
   color: #fff4cc;
+  transform: translateY(-16px); /* above the dot, a fixed distance on screen */
 }
 
 /* ---- 3D navigation hint ---- */

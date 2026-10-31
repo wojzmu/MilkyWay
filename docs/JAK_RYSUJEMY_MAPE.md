@@ -1,0 +1,130 @@
+# Jak rysujemy mapę — po ludzku
+
+Ten dokument opisuje kamień milowy M4: jak z katalogu 23 mln gwiazd
+(`docs/JAK_LICZYMY_ODLEGLOSCI.md`) powstaje interaktywna mapa 3D, którą
+przeglądarka obraca płynnie. Kod: `milkyway/viewer_export.py` (eksport),
+`web/src/data/loadPointCloud.ts` i `web/src/components/GalaxyField3D.tsx`
+(viewer). Decyzja: D-021. Liczby policzone na naszych danych 31.10.2026.
+
+---
+
+## 1. Problem: 17 milionów to za dużo dla przeglądarki
+
+W promieniu 1,25 kpc mamy **17 198 645** gwiazd. Stary viewer czytał plik
+CSV i robił z każdej gwiazdy obiekt z ~35 polami. To działa dla 60 tys.
+gwiazd, ale przy milionach przeglądarka zużyłaby gigabajty pamięci i
+parsowałaby tekst przez minutę. Potrzebne były trzy rzeczy:
+
+1. **mniej punktów**, ale tak wybranych, żeby obraz się nie zmienił,
+2. **format binarny** zamiast tekstu,
+3. **rysowanie na karcie graficznej** bez osobnego obiektu na gwiazdę.
+
+## 2. Przerzedzenie: losowanie, które zawsze daje ten sam wynik
+
+Bierzemy co ~11. gwiazdę (dokładnie ułamek f = **0,0872**), ale nie „co
+jedenastą z listy”, bo lista jest posortowana po niebie i powstałyby
+pasy. Dla każdej gwiazdy liczymy z jej numeru **hasz**, czyli
+pseudolosową liczbę (funkcja `splitmix64`), i zostawiamy ją, gdy hasz
+wypada poniżej progu. To jak rzut monetą, tyle że ten sam numer zawsze daje
+ten sam wynik. Kolejny eksport wybierze więc te same gwiazdy.
+
+Ważne jest, że **ten sam ułamek obowiązuje wszędzie**. Gdzie gwiazd jest
+dwa razy więcej, zostaje ich dwa razy więcej, więc kontrast między gęstym
+dyskiem a pustym halo się zachowuje. Wyjątek: **6 743** gwiazdy
+widoczne gołym okiem (G < 6) zostają zawsze, bo to je ludzie rozpoznają.
+
+Wynik: **1 505 769** gwiazd. Kolejność w pliku też jest przemyślana: najpierw
+jasne, potem reszta w kolejności haszu. Dzięki temu każdy początek pliku to
+też losowa próbka, a suwak „Points shown” rysuje po prostu pierwsze k
+punktów, bez przeliczania.
+
+## 3. Format binarny
+
+Zamiast tekstu zapisujemy liczby tak, jak trzyma je pamięć komputera
+(`points.bin`, 25,6 MB). Na jedną gwiazdę przypada **17 bajtów**:
+
+- 12 bajtów na położenie x, y, z w parsekach (3 liczby float32),
+- 3 bajty na kolor R, G, B,
+- 1 bajt na **niepewność odległości** (kod U, rozdział 4),
+- 1 bajt na klasę gwiazdy (ciąg główny, olbrzym…).
+
+Przeglądarka wczytuje taki plik jednym ruchem i od razu przekazuje karcie
+graficznej, bez parsowania.
+
+Szczegóły gwiazdy, czyli numer katalogowy, przedział odległości, jasność
+i kolor (24 bajty na gwiazdę, 36 MB), leżą w osobnym `details.bin`. Viewer
+nie pobiera go w całości. Po kliknięciu gwiazdy prosi serwer tylko o jej
+24 bajty (zapytanie HTTP *Range*), co sprawdziliśmy w przeglądarce.
+
+## 4. Kod niepewności: jeden bajt na „jak bardzo jestem pewien”
+
+Z rozdziału 3 dokumentu o odległościach: każda gwiazda ma przedział
+`r_lo`–`r_hi`. Względna niepewność to f = (r_hi − r_lo) / (2 · odległość).
+W eksporcie ma medianę **1,4%**, ale rozciąga się od 0,1% do ponad 50%.
+Taki zakres najlepiej zapisać w skali logarytmicznej: bajt 0 oznacza
+f = 0,1%, bajt 254 oznacza f = 50%, a 255 „nie wiadomo”.
+
+Bajt niesie informację, a nie przezroczystość. O tym, jak go narysować,
+decyduje suwak „Max uncertainty” w viewerze (domyślnie 20%). Gwiazdy
+powyżej progu (**11 205**, czyli 0,7%) robią się prawie przezroczyste.
+Zmiana progu nie wymaga nowego eksportu.
+
+## 5. Rysowanie: wszystko na karcie graficznej
+
+Karta graficzna dostaje całą chmurę punktów raz. Każdy suwak (maksymalna
+odległość, niepewność, klasy, jasność, rozmiar punktu) zmienia tylko kilka
+liczb przekazywanych do małego programu na karcie (**shadera**), który dla
+każdego punktu decyduje, czy go narysować i jak. Dlatego przesuwanie suwaka
+działa płynnie przy 1,5 mln punktów.
+
+Punkty się **sumują** (mieszanie addytywne): tam, gdzie jest ich dużo,
+obraz jaśnieje, jak prawdziwa Droga Mleczna na niebie. Przy 1,5 mln
+punktów pełna jasność każdego daje biały placek, dlatego domyślna
+„Brightness” to 15%.
+
+## 6. Co widać z boku
+
+Przycisk „Side (edge-on)” ustawia kamerę w płaszczyźnie Galaktyki. Mapa
+jest kulą o promieniu 1,25 kpc, ale gwiazdy układają się w **spłaszczony
+dysk**. Na liczbach, w powłoce 1000–1250 pc:
+
+- **44%** gwiazd leży mniej niż 10° od płaszczyzny Galaktyki; gdyby były
+  rozłożone równomiernie w kuli, byłoby to 17%;
+- tylko **2,2%** leży wyżej niż 60° nad lub pod płaszczyzną, a przy
+  rozkładzie równomiernym byłoby to 13%.
+
+To jest efekt, który chcieliśmy pokazać: dysk ma grubość kilkuset
+parseków, więc na 1,25 kpc jego płaskość już widać. W M5 zmierzymy ją
+liczbowo (wysokość skali).
+
+## 7. Skutki uboczne, o których trzeba pamiętać
+
+- **Jasny środek to częściowo złudzenie.** Na sześcian parseka przypada
+  w pobliżu Słońca (do 250 pc) **19 razy** więcej narysowanych gwiazd niż
+  w powłoce 1000–1250 pc. Gwiazd w kosmosie nie ma tam 19 razy więcej:
+  przy limicie G < 15 z daleka widać tylko jaśniejsze gwiazdy (rozdział 4
+  dokumentu o pobieraniu). Mapa pokazuje to, co Gaia zmierzyła, a nie
+  prawdziwą gęstość. Poprawka na to jest w planie M5.
+- **Pył** przyciemnia i zaczerwienia gwiazdy w płaszczyźnie dysku, więc
+  część z nich wypadła za limit G < 15. Kolory na mapie nie są jeszcze
+  poprawione o pył (też M5).
+- **Diagram HR** jest wyłączony dla tej mapy. Pełne dane do niego są
+  w `details.bin`, ale wymagałyby pobrania 36 MB. Może wrócić później.
+- **Strona publiczna.** Pliki mapy (~60 MB) są generowane lokalnie i nie
+  trafiają do gita, więc strona na GitHub Pages ich na razie nie pokazuje.
+
+## 8. Słowniczek
+
+- **Przerzedzenie (thinning):** zostawienie losowej części punktów
+  z zachowaniem proporcji.
+- **Hasz:** liczba wyliczona z numeru gwiazdy, która wygląda losowo, ale
+  dla tego samego numeru jest zawsze taka sama.
+- **float32:** liczba zmiennoprzecinkowa w 4 bajtach; dokładność ~7 cyfr,
+  czyli dla 1000 pc ok. 0,0001 pc.
+- **HTTP Range:** prośba do serwera o fragment pliku zamiast całości.
+- **Shader:** mały program uruchamiany na karcie graficznej dla każdego
+  punktu z osobna, równolegle.
+- **Mieszanie addytywne:** kolory nakładających się punktów się sumują,
+  jak światło, a nie zasłaniają jak farba.
+- **Widok face-on / edge-on:** Galaktyka oglądana z góry / z boku
+  (z płaszczyzny dysku).

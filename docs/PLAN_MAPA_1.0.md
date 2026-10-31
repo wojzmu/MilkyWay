@@ -1,6 +1,7 @@
 # Plan „Mapa 1.0" — mapa 3D okolicy Słońca w ~1,25 kpc
 
-Wersja 1 (31.10.2026). Plan dla jednej osoby pracującej z Claude Code.
+Wersja 2 (31.10.2026; v1 → v2: zmierzona liczność i jej skutki, D-011–D-014).
+Plan dla jednej osoby pracującej z Claude Code.
 Przycięty z planu v4 (`docs/plan-v4/`). Wszystko, co tu pominięto, zostaje
 w planie v4 jako praca na później (§5).
 
@@ -15,7 +16,10 @@ szacunek, nie pomiar.
 - viewer płynnie pokazuje ~1–1,5 mln gwiazd z kolorami i widokiem z boku;
 - katalog odtwarza się jednym poleceniem z manifestu;
 - katalog referencyjny (domyślne `MAX_DIST_PC` = 60 pc) z nowego pipeline'u zgadza się ze starym (te same gwiazdy,
-  odległości w granicach niepewności);
+  odległości w granicach niepewności). Porównanie przy **tych samych cięciach**:
+  nowy pipeline uruchomiony bez limitu G (`g_max` wyłączone) i z cięciami
+  starego (`parallax_over_error > 10`, `ruwe < 1.4`), bo stary katalog zawiera
+  słabe karły M z G > 15 (D-013);
 - orientacyjna wysokość skali mieści się w 200–450 pc (szeroki przedział, bo
   bez korekt z planu v4).
 
@@ -32,12 +36,25 @@ szacunek, nie pomiar.
 | Mapa pyłu Edenhofer 2024 (średnia) do odczerwienienia koloru | S5 | Bez próbek posterioru |
 | Eksport binarny dla viewera, przerzedzenie, przezroczystość wg niepewności | S1 | Jeden plik, bez kafelków x/y/z na start |
 
-**Dlaczego `g_max = 15` na start:** zbiór jest o rząd–dwa wielkości mniejszy
-niż przy G < 19 (dokładną liczbę daje jedno zapytanie COUNT), mieści się
-wygodnie na laptopie, a jasne gwiazdy mają dobre paralaksy, więc proste
-odległości wystarczą. Kosztem jest to, że daleko widać tylko jaśniejsze
-gwiazdy. Dla mapy to akceptowalne, bo selekcja jest sferyczna i spłaszczenie
-dysku pozostaje widoczne.
+**Dlaczego `g_max = 15` na start:** zbiór jest ~8× mniejszy niż przy G < 19
+(zmierzone 31.10.2026, D-011: **23 371 857 wierszy**, 192 piksele poz. 2,
+maks. 462 780, mediana 83 738; liczności w `docs/data/dr3_g15_hpx2_counts.csv`).
+To ~3,5 GB Parquetu, więc mieści się na laptopie, a jasne gwiazdy mają dobre
+paralaksy, więc proste odległości wystarczą. Kosztem jest to, że daleko widać
+tylko jaśniejsze gwiazdy. Dla mapy to akceptowalne, bo selekcja jest sferyczna
+i spłaszczenie dysku pozostaje widoczne.
+
+**Konsekwencje liczności:**
+- selekcja `parallax > 0.5` sięga ~2 kpc; cięcie do 1,25 kpc robimy dopiero po
+  odległościach (M3), więc pobieramy też pas 1,25–2 kpc jako zapas na
+  niepewność paralaksy;
+- pobranie trwa godziny, nie minuty: pobieracz musi wznawiać pracę i pomijać
+  gotowe kafelki; kafelek = piksel poz. 2 (≤ ~0,5 mln wierszy);
+- viewer dostaje przerzedzenie f ≈ 1,5 mln / N (~6% przy całości, więcej po
+  cięciu do 1,25 kpc);
+- lista pobieranych kolumn musi zawierać wejścia zero-pointu (M3):
+  `nu_eff_used_in_astrometry`, `pseudocolour`, `ecl_lat`,
+  `astrometric_params_solved` — bez nich M3 wymaga ponownego pobrania.
 
 ## 3. Kamienie milowe
 
@@ -46,23 +63,33 @@ Szacunki w sesjach pracy z Claude Code (wieczór lub pół dnia weekendu).
 | # | Kamień milowy | Sesje | Termin |
 |---|---|---|---|
 | M1 | Magazyn: CSV → Parquet + DuckDB, manifest, test zgodności z katalogiem referencyjnym 60 pc | 2–3 | do ~9.11 |
-| M2 | Pobieracz uproszczony + pobranie DR3 (`g_max = 15`, 1,25 kpc) | 2–3 | **przed 25.11** |
+| M2 | Pobieracz uproszczony + pobranie DR3 (`parallax > 0.5`, `g_max = 15`; ~2,3·10⁷ wierszy) | 2–3 | przed 25.11 (cel) |
 | M3 | Zero-point, odległości, współrzędne galaktocentryczne | 2–3 | do ~1.12 |
 | M4 | Eksport binarny, viewer z ~1,5 mln punktów, widok z boku | 3–4 | grudzień |
 | M5 | Pył (Edenhofer) dla kolorów, orientacyjny fit wysokości skali | 2–3 | grudzień |
 | M6 | Przejście na DR4 (zmiana konfiguracji + test katalogu referencyjnego) | 1–2 | styczeń |
 
-Jedyny twardy termin to **M2 przed wyłączeniem archiwum ESA 25.11 12:00 CET**
-(do 2.12). DR3 jest też w AIP (`gaia.aip.de`, pełna
-`gaiadr3.gaia_source`, dostępne także w czasie wyłączenia ESA; domyślna
-kolejka 30 s, trzeba wybrać kolejkę 2 h). Przegapienie terminu oznacza więc
-zmianę serwisu, a nie koniec projektu.
+Termin M2 przestał być twardy (D-012). Archiwum ESA jest wyłączone
+25.11 12:00 – 2.12 CET, ale **głównym serwisem pobierania jest AIP**
+(`gaia.aip.de/tap`): sprawdzone 31.10 — pełna `gaiadr3.gaia_source`
+(153 kolumny), dostęp anonimowy, kolejka `QUEUE=2h` przyjmowana bez konta,
+COUNT po całej selekcji w 5,5 min. ESA tego dnia zwróciło HTTP 500 i timeout,
+więc jest zapasem, a nie podstawą. Pobranie przed 25.11 pozostaje celem, bo
+daje dwa działające serwisy na wypadek awarii AIP.
 
 ## 4. Orientacyjna wysokość skali (M5) — świadome uproszczenia
 
-Prosty fit: walec R < 250 pc, karły G/K z oknem w CMD, histogram |z|,
-profil wykładniczy na 150–450 pc. **Znane obciążenia, których 1.0 nie
-koryguje** (opisane w v4, S4 T5 i S5):
+Prosty fit: walec R < 250 pc, karły ciągu głównego z oknem w CMD
+**M_G ≤ 6** (G i wczesne K), histogram |z|, profil wykładniczy na 150–450 pc.
+
+**Dlaczego M_G ≤ 6, a nie całe G/K (D-014):** przy `g_max = 15` próbka jest
+kompletna tylko do M_G = 15 − μ − A_G. Najdalszy punkt walca to
+√(250² + 450²) ≈ 515 pc (μ = 8,56), a A_G na tych wysokościach przyjmujemy
+≤ ~0,3 mag, co daje M_G ≲ 6,1. Późne karły K (M_G ≈ 6–8) znikałyby z próbki
+wraz z |z| i udawały spadek gęstości, czyli zaniżały h. Przy przejściu na
+G < 19 okno można rozszerzyć (granica rośnie o 4 mag).
+
+**Znane obciążenia, których 1.0 nie koryguje** (opisane w v4, S4 T5 i S5):
 - odległości z inwersji paralaksy, nie fit w przestrzeni paralaks;
 - brak mocków i budżetu systematyki;
 - z☉ zależy od założenia symetrii północ–południe;

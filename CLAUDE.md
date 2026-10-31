@@ -33,8 +33,9 @@ Two parts that share one dataset:
 - Gdy coś w planie okazuje się nieprawdziwe (np. zmierzona liczba wierszy,
   nazwa kolumny w DR4), popraw plan i dopisz decyzję zamiast obchodzić
   problem w kodzie.
-- Twardy termin: pobranie danych DR3 przed 25.11.2026 12:00 CET
-  (wyłączenie archiwum ESA do 2.12; zapas: AIP `gaia.aip.de`).
+- Pobieranie DR3 idzie z AIP (`gaia.aip.de/tap`, `QUEUE=2h`, anonimowo),
+  ESA jest zapasem (wyłączone 25.11.2026 12:00 – 2.12 CET). Cel: pobranie
+  przed 25.11, ale to już nie twardy termin (D-012).
 
 ## Commands
 

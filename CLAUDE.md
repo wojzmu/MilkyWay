@@ -33,6 +33,10 @@ Two parts that share one dataset:
 - Gdy coś w planie okazuje się nieprawdziwe (np. zmierzona liczba wierszy,
   nazwa kolumny w DR4), popraw plan i dopisz decyzję zamiast obchodzić
   problem w kodzie.
+- Każdy kamień milowy kończy się dokumentem prostym językiem w `docs/`
+  (wzór: `docs/JAK_POBIERAMY_DANE.md`): co robimy, dlaczego, na liczbach
+  z naszych danych, jakie są skutki uboczne, słowniczek. Liczby sprawdzaj
+  w kodzie, nie z pamięci.
 - Pobieranie DR3 idzie z AIP (`gaia.aip.de/tap`, `QUEUE=2h`, anonimowo),
   ESA jest zapasem (wyłączone 25.11.2026 12:00 – 2.12 CET). Cel: pobranie
   przed 25.11, ale to już nie twardy termin (D-012).

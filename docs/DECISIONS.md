@@ -11,6 +11,26 @@ decyzja — dopisz.
 
 ---
 
+## D-019 · 2026-10-31 · Kształt pobrania M2
+**Decyzja:**
+- Kafelek = piksel HEALPix poz. 2 (`source_id` od `k << 55` do
+  `((k+1) << 55) − 1`), 192 kafelki; wynik z AIP wprost w Parquet,
+  36 kolumn 1:1 z archiwum (`milkyway/raw.py`, w tym wejścia ZP).
+- Kafelek jest zapisywany tylko po weryfikacji; najsilniejsza kontrola to
+  liczba wierszy = COUNT z D-011. Manifest pobrania powstaje dopiero, gdy
+  są wszystkie kafelki. Zbiór w schemacie katalogu buduje M3.
+- 2 zapytania naraz w AIP (serwis anonimowy); joby usuwane po pobraniu.
+- Hipparcos w 1.0: tak, jako zbiór pomocniczy (katalog + `best_neighbour`
+  z kolumnami odpowiednika w Gai); scalenie w M3 (do katalogu tylko HIP bez
+  odpowiednika 5p/6p).
+- FLAME (`mass_flame`, `age_flame`): pomijamy w 1.0 (puste kolumny).
+- Nazwy SIMBAD: w M4, tylko dla jasnych gwiazd.
+- Pobieranie uruchamia użytkownik; Claude czyta tylko podsumowanie (koszt).
+**Dlaczego:** pilot 31.10 — najgęstszy kafelek (462 780 wierszy) w 88 s,
+82,6 MB, 178 B/wiersz; całość ~4,2 GB i ~1–1,5 h. Limit AIP to 5·10⁶
+wierszy na job, ~10× powyżej największego kafelka.
+**Źródło:** plan M2 zatwierdzony w sesji Claude Code, 31.10.2026.
+
 ## D-018 · 2026-10-31 · Twardsze kontrole magazynu po przeglądzie M1
 **Decyzja:**
 - `open_catalog` odmawia zbioru o innej `schema_version` albo liście

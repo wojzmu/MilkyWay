@@ -277,6 +277,28 @@ complete manifest or whose files or row counts differ from it.
 
 ---
 
+## 5b. Raw fetch (M2)
+
+`python MilkyWay.py --fetch` downloads `gaiadr3.gaia_source` rows (G < 15, parallax > 0.5 mas;
+decisions D-008, D-011, D-019) from the AIP TAP service, one file per level-2 HEALPix pixel. Columns
+and types are `RAW_SCHEMA` in `milkyway/raw.py`; the loop is `milkyway/fetch.py`.
+
+```
+data/raw/dr3/<fetch_id>/
+  tiles/tile_<k>.parquet     # k = 0..191, written only after verification
+  fetch_manifest.json        # written last, once all 192 tiles are present (SHA-256 per tile)
+  fetch_summary.json         # outcome of the last run: counts, failed tiles, rows, bytes, timings
+  fetch.log                  # one line per tile event
+data/raw/dr3/aux/
+  hip2_best_neighbour.parquet   # Hipparcos-2 -> Gaia DR3 best neighbour + Gaia astrometry
+  hipparcos.parquet             # Hipparcos main catalogue, all ~118 218 rows
+  aux_manifest.json             # rows, SHA-256, query and service per file
+```
+
+A completed fetch is the permanent local copy: later stages read it, never the archive. Back up `data/raw/` (~4.2 GB) and check a restored copy with `raw.open_fetch(dir, verify_hashes=True)`.
+
+---
+
 ## 6. References
 
 - **Gaia DR3** — Gaia Collaboration et al. (2023); catalogue table `gaiadr3.gaia_source`.

@@ -68,6 +68,38 @@ def _export_csv(dataset, out_path):
     print(f"Wrote {out_path} ({table.num_rows} stars)")
 
 
+def _fetch(args, tile_ids):
+    """Run the raw download; returns the process exit code (1 if any tile failed)."""
+    from . import fetch, raw                           # lazy: requests/pyarrow optional
+    if args.fetch_aux:
+        manifest = fetch.run_aux(data_dir=args.data_dir)
+        if manifest.get("already_complete"):
+            return 0                                   # run_aux already said so
+        for name, e in manifest["files"].items():
+            print(f"{name}: {e['rows']} rows ({e['service']})")
+        return 0
+    try:
+        summary = fetch.run_fetch(data_dir=args.data_dir,
+                                  fetch_id=args.fetch_id or raw.DEFAULT_FETCH_ID,
+                                  tiles=tile_ids, max_jobs=args.max_jobs)
+    except raw.TileError as exc:
+        print(f"ERROR: existing fetch does not check out: {exc}\n"
+              f"Not re-downloading; inspect or delete it, or use a new --fetch-id.")
+        return 1
+    if summary.get("already_complete"):
+        print(f"fetch {summary['fetch_id']} already complete ({summary['rows_total_on_disk']} "
+              f"rows); nothing to download. Use a new --fetch-id to fetch again.")
+        return 0
+    print(f"Fetch {summary['fetch_id']}: {summary['tiles_fetched_now']} fetched now, "
+          f"{summary['tiles_done_before']} already done, "
+          f"{len(summary['tiles_failed'])} failed of {summary['tiles_planned']}")
+    print(f"  {summary['rows_total_on_disk']} rows, {summary['bytes_on_disk'] / 1e6:.1f} MB, "
+          f"{summary['elapsed_s']:.0f} s, manifest written: {summary['manifest_written']}")
+    for f in summary["tiles_failed"]:
+        print(f"  FAILED tile {f['tile']}: {f['error'][:120]}")
+    return 1 if summary["tiles_failed"] else 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Nearby-star pipeline and plotter.")
     parser.add_argument("--plot-only", action="store_true",
@@ -97,7 +129,42 @@ def main(argv=None):
                         help="with --dataset: write the legacy CSV and exit")
     parser.add_argument("--data-dir", default=os.path.join(PROJECT_ROOT, "data"),
                         metavar="DIR", help="where datasets live (default: <project>/data)")
+    parser.add_argument("--fetch", action="store_true",
+                        help="download the raw Gaia DR3 tiles (192, resumable) into "
+                             "<data-dir>/raw/dr3/<fetch-id>/, then exit")
+    parser.add_argument("--fetch-tiles", default=None, metavar="K,K,...",
+                        help="pilot: fetch only these level-2 pixels (implies --fetch; "
+                             "no manifest is written)")
+    parser.add_argument("--fetch-aux", action="store_true",
+                        help="download the Hipparcos auxiliary tables into "
+                             "<data-dir>/raw/dr3/aux/, then exit")
+    parser.add_argument("--fetch-id", default=None, metavar="ID",
+                        help="fetch id (default: dr3_g15_p0.5)")
+    parser.add_argument("--max-jobs", type=int, default=2, metavar="N",
+                        help="concurrent archive jobs for --fetch, 1..4 (default 2)")
     args = parser.parse_args(argv)
+
+    fetching = args.fetch or args.fetch_aux or args.fetch_tiles is not None
+    if fetching:
+        if args.to_parquet or args.dataset or args.plot_only or args.export_csv:
+            parser.error("--fetch/--fetch-tiles/--fetch-aux cannot be combined with "
+                         "--to-parquet, --dataset, --export-csv or --plot-only")
+        if args.fetch_aux and (args.fetch or args.fetch_tiles is not None):
+            parser.error("--fetch-aux cannot be combined with --fetch/--fetch-tiles")
+        if not 1 <= args.max_jobs <= 4:
+            parser.error("--max-jobs must be between 1 and 4")
+        if args.fetch_id is not None and (msg := _id_problem(args.fetch_id)):
+            parser.error(msg)
+    elif args.fetch_id is not None:
+        parser.error("--fetch-id requires --fetch, --fetch-tiles or --fetch-aux")
+    tile_ids = None
+    if args.fetch_tiles is not None:
+        try:
+            tile_ids = sorted({int(x) for x in args.fetch_tiles.split(",") if x.strip()})
+        except ValueError:
+            parser.error("--fetch-tiles expects comma-separated integers")
+        if not tile_ids or tile_ids[0] < 0 or tile_ids[-1] > 191:
+            parser.error("--fetch-tiles ids must be within 0..191")
 
     if args.dataset_id and not args.to_parquet:
         parser.error("--dataset-id requires --to-parquet")
@@ -118,6 +185,8 @@ def main(argv=None):
     if args.dataset and not _is_path(args.dataset) and (msg := _id_problem(args.dataset)):
         parser.error(msg)
 
+    if fetching:
+        return _fetch(args, tile_ids)
     if args.to_parquet:
         _to_parquet(args.to_parquet, args.dataset_id, args.data_dir)
         return

@@ -15,4 +15,4 @@ from milkyway.classify import (_MS_BPRP, _MS_ABSG,        # noqa: F401
                                SPURIOUS_NOCOLOUR_MG)
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

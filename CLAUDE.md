@@ -64,6 +64,17 @@ python MilkyWay.py --dataset ID --export-csv OUT.csv         # legacy CSV for th
 python -m pytest -q                                          # test suite (~1 min; offline)
 ```
 
+Raw Gaia fetch (milestone M2; `milkyway/fetch.py` + the contract in `milkyway/raw.py`; networked,
+resumable, writes to the git-ignored `data/raw/dr3/<fetch-id>/`):
+
+```bash
+python MilkyWay.py --fetch [--fetch-id ID] [--max-jobs 2]   # all 192 tiles (G<15, plx>0.5) -> tiles/ + fetch_manifest.json
+python MilkyWay.py --fetch-tiles 111,112                    # pilot subset (no manifest)
+python MilkyWay.py --fetch-aux                              # Hipparcos tables -> data/raw/dr3/aux/
+```
+
+Progress goes to `fetch.log`; read `fetch_summary.json` for the outcome. Exit code 1 if any tile failed. A completed fetch is the permanent local copy: later stages read it, never the archive. Back up `data/raw/` (~4.2 GB) and check a restored copy with `raw.open_fetch(dir, verify_hashes=True)`. Re-running `--fetch` on a complete fetch makes no network call.
+
 `data/reference/nearby_stars_60.0pc.csv` is the frozen reference catalogue for
 compatibility tests (SHA-256 in D-013); tests that need it skip when it is absent.
 

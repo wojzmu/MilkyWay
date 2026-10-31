@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useRef, type ComponentRef } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import type { Star } from "../types";
 import { categoryColor, type ColorMode } from "../categories";
+import { NameLayout, NameOverlay, type NameLabel, type StarName } from "./StarNames";
 
 interface Props {
   stars: Star[];
   selected: Star | null;
   onSelect: (star: Star | null) => void;
   colorMode: ColorMode;
+  /** star_id -> well-known name (public/star_names.json). */
+  names: Map<string, StarName>;
 }
 
 /**
@@ -69,7 +72,7 @@ function patchPointSize(shader: THREE.WebGLProgramParametersWithUniforms) {
  * heliocentric Galactic Cartesian coordinates (pc). The Sun sits at the origin.
  * Each star uses its true-colour RGB from the catalogue.
  */
-function StarPoints({ stars, selected, onSelect, colorMode }: Props) {
+function StarPoints({ stars, selected, onSelect, colorMode, names }: Props) {
   // Only stars with full Cartesian coordinates can be plotted.
   const plottable = useMemo(
     () => stars.filter((s) => s.x !== null && s.y !== null && s.z !== null),
@@ -160,7 +163,8 @@ function StarPoints({ stars, selected, onSelect, colorMode }: Props) {
           <meshBasicMaterial color="#7fd4ff" side={THREE.DoubleSide} />
           <Html distanceFactor={20} position={[0, 0.9, 0]} center>
             <div className="star-label">
-              {selected.properName ?? selected.simbadMainId ?? selected.starId}
+              {names.get(selected.starId)?.name ??
+                selected.properName ?? selected.simbadMainId ?? selected.starId}
             </div>
           </Html>
         </mesh>
@@ -265,6 +269,39 @@ function KeyboardNav({ controls }: { controls: React.RefObject<OrbitControlsRef 
 
 export default function StarField3D(props: Props) {
   const controls = useRef<OrbitControlsRef>(null);
+  const [showNames, setShowNames] = useState(true);
+  const labelEls = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Named stars among the (filtered) stars, best known first, one label per
+  // name even if a CSV holds both a Hipparcos and a Gaia row of the star.
+  const named = useMemo(() => {
+    const out: { star: Star; n: StarName }[] = [];
+    const seen = new Set<number>();
+    for (const s of props.stars) {
+      if (s.x === null || s.y === null || s.z === null) continue;
+      const n = props.names.get(s.starId);
+      if (!n || seen.has(n.hip)) continue;
+      seen.add(n.hip);
+      out.push({ star: s, n });
+    }
+    return out.sort((a, b) => a.n.tier - b.n.tier || a.n.v_mag - b.n.v_mag);
+  }, [props.stars, props.names]);
+  const labels = useMemo<NameLabel[]>(
+    () =>
+      named.map(({ star, n }) => ({
+        key: n.hip,
+        name: n.name,
+        title: `${n.name_iau} · ${star.starId}` +
+          (star.distPc === null ? "" : ` · ${star.distPc.toFixed(2)} pc`),
+        tier: n.tier,
+        pos: [star.x!, star.z!, star.y!],
+        clickable: true,
+      })),
+    [named],
+  );
+  const shownRef = useRef<(i: number) => boolean>(() => true);
+  // The selected star already carries its name on the selection ring.
+  shownRef.current = (i) => showNames && named[i].star !== props.selected;
 
   return (
     <>
@@ -290,12 +327,25 @@ export default function StarField3D(props: Props) {
       <axesHelper args={[5]} />
       <OrbitControls ref={controls} enableDamping dampingFactor={0.1} />
       <KeyboardNav controls={controls} />
+      {labels.length > 0 && (
+        <NameLayout labels={labels} elsRef={labelEls} shownRef={shownRef}
+                    reserve={[0, 0.6, 0]} />
+      )}
     </Canvas>
+    <NameOverlay labels={labels} elsRef={labelEls}
+                 onPick={(i) => props.onSelect(named[i].star)} />
     <div className="nav-hint">
       <span><kbd>←</kbd><kbd>→</kbd> pan</span>
       <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
       <span><kbd>A</kbd><kbd>S</kbd> rotate</span>
       <span>drag / scroll to orbit &amp; zoom</span>
+      {labels.length > 0 && (
+        <label className="nav-hint__names">
+          <input type="checkbox" checked={showNames}
+                 onChange={() => setShowNames((v) => !v)} />
+          star names
+        </label>
+      )}
     </div>
     </>
   );

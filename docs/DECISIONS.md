@@ -11,6 +11,41 @@ decyzja — dopisz.
 
 ---
 
+## D-026 · 2026-10-31 · Nazwy znanych gwiazd na mapie
+**Decyzja:**
+- Lista `milkyway/star_names.csv` (102 gwiazdy): każda gwiazda z IAU
+  Catalog of Star Names (WGSN, wersja 2022-04-04, CC BY 4.0) z V ≤ 2,5
+  (85) plus 17 słynnych słabszych (m.in. Proxima Centauri, Gwiazda
+  Barnarda, Mira, Alkor, Thuban, Albireo). HIP i V z WGSN, nie z pamięci.
+  Polska forma dla 17 nazw w powszechnym użyciu (Syriusz, Betelgeza, Wega,
+  Gwiazda Polarna, Alfa Centauri A/B…), reszta po IAU. `tier` 1 (29
+  najbardziej znanych), 2 (V ≤ 1,6), 3.
+- Dopasowanie po kolumnie `hip` katalogu (unikalna, D-018); eksport viewera
+  pisze `labels.json` obok `points.bin` (pozycja z katalogu, `point` = indeks
+  punktu albo null) i raport w `index.json` `labels`: brak w katalogu,
+  poza `dist_max`, liczba gwiazd bez punktu. Viewer: warstwa HTML nad
+  canvasem, układanie zachłanne co klatkę (kolejność z listy; podpis
+  nachodzący na wcześniejszy znika), klik wybiera gwiazdę, przełącznik
+  „Star names”.
+- Widok CSV (20–120 pc, stary pipeline): pliki CSV zostają nietknięte;
+  `web/public/star_names.json` (w repo, `--dataset ID --export-star-names`)
+  daje każdej nazwie listę możliwych `star_id`: „HIP n” oraz Gaia DR3 z
+  katalogu v3 i z `hipparcos2_best_neighbour` (102 nazwy, 128 id), bo stary
+  pipeline mógł zapisać gwiazdę jako wiersz Hipparcosa albo Gai. Dopasowane:
+  20 pc — 41 nazw, 60 pc — 58 (wszystkie gwiazdy z listy w 60 pc),
+  120 pc (≥ 0,9 M☉) — 12, bo ten zbiór odrzuca gwiazdy bez masy (olbrzymy).
+  Ten sam moduł podpisów (`web/src/components/StarNames.tsx`) w obu widokach.
+- Kolumna katalogu `proper_name` zostaje pusta (SIMBAD odkładamy;
+  zastępuje zapowiedź „nazwy SIMBAD w M4” z D-019).
+**Dlaczego:** wynik 31.10 na `dr3_g15_p0.5_v3`: wszystkie 102 gwiazdy są
+w katalogu i w 1,25 kpc (najdalszy Deneb, 990 pc); 86 to wiersze
+Hipparcosa (Gaia nasyca się na jasnych gwiazdach). Na pełnej mapie
+2 nazwy nie mają punktu (Proxima i Gwiazda Barnarda, wycięte
+przerzedzeniem), na mapie tracers 7 (karły poniżej M_G₀ = 2); podpis
+i tak stoi w ich pozycji. Lista statyczna zamiast SIMBAD: działa offline,
+nazwy PL, jedna recenzowana lista.
+**Źródło:** zadanie viewera z planu, sesja Claude Code, 31.10.2026.
+
 ## D-025 · 2026-10-31 · Orientacyjna wysokość skali (M5): h ≈ 331 pc
 **Decyzja:**
 - `milkyway/scale_height.py`, `--dataset ID --scale-height DIR`. Walec

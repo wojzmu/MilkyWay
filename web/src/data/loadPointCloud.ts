@@ -9,7 +9,22 @@ export interface PointCloudIndex {
   selection?: { dist_pc_max?: number; abs_mag_max?: number | null };
   /** Version 2: parsec per int16 position unit. */
   position_scale_pc?: number;
+  labels?: { file: string; n: number };
   [key: string]: unknown;
+}
+
+/** A well-known star's name, placed at its catalogue position (labels.json). */
+export interface StarLabel {
+  name: string;
+  nameIau: string;
+  hip: number;
+  tier: number;
+  vMag: number;
+  /** Screen axes (x, galactic z, galactic y), parsec. */
+  pos: [number, number, number];
+  distPc: number;
+  /** Index into points.bin, or null when the star is not among the exported points. */
+  point: number | null;
 }
 
 export interface PointCloud {
@@ -24,6 +39,8 @@ export interface PointCloud {
   classCodes: string[];
   /** Directory URL (with trailing slash) holding points.bin / details.bin. */
   baseUrl: string;
+  /** Named stars, best known first; empty when the export has no labels.json. */
+  labels: StarLabel[];
 }
 
 export interface PointDetail {
@@ -146,7 +163,43 @@ export async function loadPointCloud(
     classes,
     classCodes: index.class_codes,
     baseUrl,
+    labels: index.labels ? await loadLabels(`${baseUrl}${index.labels.file}`, n) : [],
   };
+}
+
+interface LabelRecord {
+  name: string;
+  name_iau: string;
+  hip: number;
+  tier: number;
+  v_mag: number;
+  x_pc: number;
+  y_pc: number;
+  z_pc: number;
+  dist_pc: number;
+  point: number | null;
+}
+
+/** labels.json -> StarLabel[]; a missing or broken file only costs the names. */
+async function loadLabels(url: string, n: number): Promise<StarLabel[]> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const doc = (await res.json()) as { labels?: LabelRecord[] };
+    return (doc.labels ?? []).map((r) => ({
+      name: r.name,
+      nameIau: r.name_iau,
+      hip: r.hip,
+      tier: r.tier,
+      vMag: r.v_mag,
+      pos: [r.x_pc, r.z_pc, r.y_pc],
+      distPc: r.dist_pc,
+      point: r.point !== null && r.point >= 0 && r.point < n ? r.point : null,
+    }));
+  } catch (e) {
+    console.warn(`labels: ${url}: ${(e as Error).message}`);
+    return [];
+  }
 }
 
 const fullDetails = new Map<string, ArrayBuffer>();

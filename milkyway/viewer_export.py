@@ -21,6 +21,12 @@ details.bin:
     N x 24 B        int64 id (source_id; -hip for Hipparcos-only rows),
                     float32 r_lo_pc, r_hi_pc, g_mag, bp_rp (NaN when unknown)
 Record i of details.bin is point i of points.bin (offset 16 + 24 i).
+labels.json:
+    names of well-known stars (`milkyway/star_names.csv`, D-026) matched by `hip`:
+    name, name_iau, hip, tier, v_mag, x/y/z_pc (heliocentric Galactic), dist_pc and
+    `point` (index into points.bin, or null when the star is not exported, e.g. a
+    dwarf in the tracer map). Stars missing from the catalogue or beyond dist_max
+    are listed in index.json "labels", never dropped silently.
 
 U = round(254 (log10 f + 3) / (log10 0.5 + 3)) clipped to [0, 254], where
 f = (r_hi - r_lo) / (2 dist) is the relative distance uncertainty; 255 = r_hi unknown.
@@ -59,6 +65,82 @@ _COLUMNS = ["source_id", "hip", "x_pc", "y_pc", "z_pc", "dist_pc", "r_lo_pc", "r
             "g_mag", "bp_rp", "bp_rp0", "abs_g", "abs_g0", "star_class"]
 
 _M64 = (1 << 64) - 1
+NAMES_FILE = Path(__file__).resolve().parent / "star_names.csv"
+LABELS_VERSION = 1
+
+
+def load_star_names(path=NAMES_FILE):
+    """[{hip, name, name_iau, v_mag, tier}] from the curated CSV (comment lines '#')."""
+    import csv
+    with open(path, encoding="utf-8") as f:
+        rows = list(csv.DictReader(line for line in f if not line.startswith("#")))
+    out = [{"hip": int(r["hip"]), "name": r["name"], "name_iau": r["name_iau"],
+            "v_mag": float(r["v_mag"]), "tier": int(r["tier"])} for r in rows]
+    hips = [r["hip"] for r in out]
+    if len(set(hips)) != len(hips):
+        raise ValueError(f"{path}: duplicate hip")
+    return out
+
+
+def export_star_names(dataset_dir, aux_dir, out_path, names_file=NAMES_FILE):
+    """Name list for the CSV viewer (D-026): every `star_id` a named star may carry.
+
+    Legacy CSVs are matched by `star_id`, and the old pipeline may hold a star as a
+    Hipparcos row or as its Gaia counterpart, so each name lists "HIP <n>" plus the
+    Gaia DR3 source_ids that the catalogue (`dataset_dir`) and the archive's
+    hipparcos2_best_neighbour table (`aux_dir`) give for that HIP number."""
+    names = load_star_names(names_file)
+    hips = pa.array([nm["hip"] for nm in names], pa.int32())
+    ids = {nm["hip"]: set() for nm in names}
+    manifest = storage.open_catalog(dataset_dir)
+    for p in manifest["storage"]["partitions"]:
+        t = pq.read_table(Path(dataset_dir) / p["path"], columns=["source_id", "hip"])
+        t = t.filter(pc.and_(pc.fill_null(pc.is_in(t["hip"], hips), False),
+                             pc.is_valid(t["source_id"])))
+        for s, hp in zip(t["source_id"].to_pylist(), t["hip"].to_pylist()):
+            ids[hp].add(s)
+    nb = pq.read_table(Path(aux_dir) / "hip2_best_neighbour.parquet",
+                       columns=["source_id", "hip"])
+    for s, hp in zip(nb["source_id"].to_pylist(), nb["hip"].to_pylist()):
+        if hp in ids:
+            ids[hp].add(s)
+    out = [{**nm, "star_ids": [f"{schema.HIP_ID_PREFIX}{nm['hip']}"]
+            + [f"{schema.GAIA_ID_PREFIX}{s}" for s in sorted(ids[nm["hip"]])]}
+           for nm in names]
+    doc = {"format": "milkyway-star-names", "version": LABELS_VERSION,
+           "source": "IAU Catalog of Star Names (WGSN); see milkyway/star_names.csv",
+           "dataset_id": manifest["dataset_id"], "names": out}
+    data = json.dumps(doc, ensure_ascii=False, indent=0).encode("utf-8")
+    storage._atomic_write(Path(out_path), data)
+    return doc
+
+
+def _labels(named_rows, names, ids, dist_max_pc):
+    """labels.json body and its report from the named stars' catalogue rows."""
+    t = pa.concat_tables(named_rows) if named_rows else None
+    by_hip = {}
+    if t is not None:
+        hip = t["hip"].to_numpy(zero_copy_only=False)
+        for i, hp in enumerate(hip):
+            by_hip[int(hp)] = i
+        sid = star_ids(t)
+    point_of = {int(v): i for i, v in enumerate(ids)}
+    labels, missing, beyond = [], [], []
+    for nm in names:
+        i = by_hip.get(nm["hip"])
+        if i is None:
+            missing.append(nm["name_iau"])
+            continue
+        d = float(t["dist_pc"][i].as_py())
+        if d > dist_max_pc:
+            beyond.append(nm["name_iau"])
+            continue
+        labels.append({**nm, **{c: round(float(t[c][i].as_py()), 2)
+                                for c in ("x_pc", "y_pc", "z_pc")},
+                       "dist_pc": round(d, 2), "point": point_of.get(int(sid[i]))})
+    return labels, {"n": len(labels), "not_in_catalogue": missing,
+                    "beyond_dist_max": beyond,
+                    "not_exported": sum(lb["point"] is None for lb in labels)}
 
 
 def splitmix64(x):
@@ -110,7 +192,7 @@ def display_rgb(t):
 
 def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
                   dist_max_pc=DEFAULT_DIST_MAX_PC, always_g_max=DEFAULT_ALWAYS_G_MAX,
-                  abs_mag_max=None):
+                  abs_mag_max=None, names_file=NAMES_FILE):
     """Write index.json, points.bin and details.bin for `dataset_dir`; return the index.
 
     `abs_mag_max` keeps only stars with abs_g <= it (e.g. 2: intrinsically bright
@@ -129,10 +211,16 @@ def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
     frac = min(1.0, target / n_eligible) if n_eligible and target else 1.0
     threshold = np.uint64(min(_M64, int(frac * 2 ** 64)))
 
-    # Pass 2: keep sampled + bright stars, partition by partition.
-    kept = []
+    # Pass 2: keep sampled + bright stars, partition by partition; collect the
+    # named stars' rows whatever the cut.
+    names = load_star_names(names_file)
+    name_hips = pa.array([nm["hip"] for nm in names], pa.int32())
+    kept, named_rows = [], []
     for f in files:
         t = pq.read_table(f, columns=_COLUMNS, schema=schema.CATALOGUE_SCHEMA)
+        named = t.filter(pc.fill_null(pc.is_in(t["hip"], name_hips), False))
+        if named.num_rows:
+            named_rows.append(named)
         t = t.filter(_eligible(t, dist_max_pc, abs_mag_max))
         if t.num_rows == 0:
             continue
@@ -182,7 +270,12 @@ def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
     rec["g"], rec["bp_rp"] = _f32(t, "g_mag"), _f32(t, "bp_rp")
     details = b"".join([b"MWDT", np.array([DETAILS_VERSION, 24], "<u2").tobytes(),
                         np.array([n, 0], "<u4").tobytes(), rec.tobytes()])
-    for name, data in (("points.bin", points), ("details.bin", details)):
+    labels, label_report = _labels(named_rows, names, ids, dist_max_pc)
+    label_doc = json.dumps({"format": "milkyway-labels", "version": LABELS_VERSION,
+                            "source": "IAU Catalog of Star Names (WGSN); see star_names.csv",
+                            "labels": labels}, ensure_ascii=False, indent=0).encode("utf-8")
+    written = (("points.bin", points), ("details.bin", details), ("labels.json", label_doc))
+    for name, data in written:
         storage._atomic_write(out / name, data)
 
     index = {
@@ -203,8 +296,9 @@ def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
                              "f_max": U_F_MAX, "missing": 255,
                              "formula": "round(254 (log10 f + 3) / (log10 f_max + 3))"},
         "class_codes": CLASS_CODES,
+        "labels": {"file": "labels.json", **label_report},
         "files": {name: {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
-                  for name, data in (("points.bin", points), ("details.bin", details))},
+                  for name, data in written},
     }
     storage._atomic_write(out / "index.json", json.dumps(index, indent=1).encode())
     return index

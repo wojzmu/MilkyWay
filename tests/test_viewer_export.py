@@ -105,3 +105,53 @@ def test_abs_mag_cut_uses_dereddened_magnitude(tmp_path):
     *_, n, _, _, _, _ = _read(tmp_path / "out")
     m = df["abs_g0"].fillna(df["abs_g"])
     assert n == int(((m <= 0.5) & (df["dist_pc"] <= 1250)).sum())
+
+
+def test_labels(dataset, tmp_path):
+    names = tmp_path / "names.csv"
+    names.write_text("# test\nhip,name,name_iau,v_mag,tier\n3,Trzecia,Third,1.0,1\n"
+                     "1,Pierwsza,First,2.0,2\n999,Brak,Missing,3.0,3\n", encoding="utf-8")
+    ve.export_viewer(dataset, tmp_path / "out", target=None, names_file=names)
+    *_, idx, n, xyz, rgbu, cls, rec = _read(tmp_path / "out")
+    doc = json.loads((tmp_path / "out" / "labels.json").read_text(encoding="utf-8"))
+    by = {lb["name_iau"]: lb for lb in doc["labels"]}
+    assert set(by) == {"Third", "First"}
+    assert idx["labels"]["not_in_catalogue"] == ["Missing"]
+    assert idx["labels"]["n"] == 2 and "labels.json" in idx["files"]
+    df = catalog_query.read_catalogue(dataset)
+    for lb in by.values():
+        row = df[df["hip"] == lb["hip"]].iloc[0]
+        assert abs(lb["x_pc"] - row["x_pc"]) < 0.01 and abs(lb["dist_pc"] - row["dist_pc"]) < 0.01
+        i = lb["point"]
+        assert i is not None
+        assert rec["id"][i] == (row["source_id"] if row["source_catalogue"] == "Gaia" else -row["hip"])
+    assert by["Third"]["name"] == "Trzecia"
+
+
+def test_star_names_file():
+    names = ve.load_star_names()
+    assert len(names) == 102
+    assert {"Syriusz", "Betelgeza", "Wega", "Gwiazda Polarna"} <= {n["name"] for n in names}
+    assert names[0]["name_iau"] == "Sirius" and names[0]["tier"] == 1
+
+
+def test_export_star_names(dataset, tmp_path):
+    """Each name lists HIP <n> plus the Gaia ids the catalogue and best_neighbour give."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    names = tmp_path / "names.csv"
+    names.write_text("hip,name,name_iau,v_mag,tier\n1,Pierwsza,First,2.0,1\n"
+                     "3,Trzecia,Third,1.0,1\n", encoding="utf-8")
+    df = catalog_query.read_catalogue(dataset)
+    sid1 = int(df.loc[df["hip"] == 1, "source_id"].iloc[0])
+    aux = tmp_path / "aux"
+    aux.mkdir()
+    pq.write_table(pa.table({"source_id": pa.array([42, 43], pa.int64()),
+                             "hip": pa.array([3, 999], pa.int32())}),
+                   aux / "hip2_best_neighbour.parquet")
+    doc = ve.export_star_names(dataset, aux, tmp_path / "star_names.json", names_file=names)
+    by = {n["name_iau"]: n["star_ids"] for n in doc["names"]}
+    assert by["First"] == ["HIP 1", f"Gaia DR3 {sid1}"]
+    assert by["Third"] == ["HIP 3", "Gaia DR3 42"]
+    on_disk = json.loads((tmp_path / "star_names.json").read_text(encoding="utf-8"))
+    assert on_disk["names"] == doc["names"]

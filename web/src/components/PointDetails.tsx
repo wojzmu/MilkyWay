@@ -9,6 +9,9 @@ interface Props {
   onClose: () => void;
 }
 
+const nameOf = (cloud: PointCloud, i: number) =>
+  cloud.labels.find((l) => l.point === i);
+
 const fmt = (n: number, digits = 2, unit = "") =>
   Number.isFinite(n) ? `${n.toFixed(digits)}${unit ? ` ${unit}` : ""}` : "—";
 
@@ -41,6 +44,7 @@ export default function PointDetails({ cloud, index, onClose }: Props) {
   const l = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
   const b = (Math.asin(z / d) * 180) / Math.PI;
   const cls = cloud.classCodes[cloud.classes[index]] ?? "Unknown";
+  const named = nameOf(cloud, index);
 
   const ready = loaded?.index === index;
   const det = ready ? loaded.detail : null;
@@ -73,8 +77,16 @@ export default function PointDetails({ cloud, index, onClose }: Props) {
           className="details__swatch"
           style={{ background: `rgb(${r},${g},${bl})` }}
         />
-        <h2>{pending ? "…" : (det?.label ?? "Unknown source")}</h2>
+        <h2>
+          {named ? named.name : pending ? "…" : (det?.label ?? "Unknown source")}
+        </h2>
       </div>
+      {named && (
+        <p className="details__sub">
+          {named.name !== named.nameIau && `${named.nameIau} · `}
+          {pending ? "…" : (det?.label ?? "")}
+        </p>
+      )}
       <table className="details__table">
         <tbody>
           {rows.map(([k, v]) => (

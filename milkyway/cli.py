@@ -78,6 +78,10 @@ def _export_viewer(dataset, out_dir, abs_mag_max=None, target=None):
     print(f"Wrote {out_dir}: {idx['n']} stars of {s['n_eligible']} within "
           f"{idx['selection']['dist_pc_max']} pc (f = {s['f']:.4f}, "
           f"{s['n_always']} bright stars always kept)")
+    lb = idx["labels"]
+    print(f"  labels: {lb['n']} named stars ({lb['not_exported']} not among the exported "
+          f"points); not in catalogue: {lb['not_in_catalogue'] or 'none'}; "
+          f"beyond {idx['selection']['dist_pc_max']} pc: {lb['beyond_dist_max'] or 'none'}")
 
 
 def _fetch(args, tile_ids):
@@ -167,6 +171,9 @@ def main(argv=None):
                         help="with --dataset: write the binary viewer export "
                              "(points.bin, details.bin, index.json; stars within "
                              "1250 pc thinned to ~1.5 million) and exit")
+    parser.add_argument("--export-star-names", default=None, metavar="OUT_JSON",
+                        help="with --dataset: write the star-name list for the CSV "
+                             "viewer (web/public/star_names.json), then exit")
     parser.add_argument("--scale-height", default=None, metavar="OUT_DIR",
                         help="with --dataset: fit the disc scale height (M5) and write "
                              "scale_height.json and scale_height.png, then exit")
@@ -258,10 +265,14 @@ def main(argv=None):
                               or args.export_viewer):
         parser.error("--scale-height requires --dataset and excludes --export-csv, "
                      "--export-viewer and --plot-only")
+    if args.export_star_names and (not args.dataset or args.export_csv or args.plot_only
+                                   or args.export_viewer or args.scale_height):
+        parser.error("--export-star-names requires --dataset and excludes the other "
+                     "--dataset actions")
     if args.dataset and not (args.plot_only or args.export_csv or args.export_viewer
-                             or args.scale_height):
-        parser.error("--dataset requires --plot-only, --export-csv, --export-viewer "
-                     "or --scale-height")
+                             or args.scale_height or args.export_star_names):
+        parser.error("--dataset requires --plot-only, --export-csv, --export-viewer, "
+                     "--scale-height or --export-star-names")
 
     if args.dataset_id is not None and (msg := _id_problem(args.dataset_id)):
         parser.error(msg)
@@ -283,6 +294,14 @@ def main(argv=None):
         return
     if args.export_csv:
         _export_csv(_dataset_dir(args.dataset, args.data_dir), args.export_csv)
+        return
+    if args.export_star_names:
+        from . import raw, viewer_export
+        doc = viewer_export.export_star_names(
+            _dataset_dir(args.dataset, args.data_dir),
+            os.path.join(args.data_dir, "raw", raw.RELEASE, "aux"), args.export_star_names)
+        n_ids = sum(len(n["star_ids"]) for n in doc["names"])
+        print(f"Wrote {args.export_star_names}: {len(doc['names'])} names, {n_ids} star_ids")
         return
     if args.scale_height:
         from . import scale_height

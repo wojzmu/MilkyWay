@@ -1,0 +1,109 @@
+# Named stars labelled on the viewer map (D-026).
+# name_iau, hip, v_mag: IAU Catalog of Star Names (WGSN, 2022-04-04),
+#   https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt (CC BY 4.0, IAU).
+# name: Polish form where one is in common use, else the IAU name.
+# Selection: every WGSN star with V <= 2.5, plus 17 famous fainter ones.
+# tier: 1 best known, 2 V <= 1.6, 3 rest; the viewer keeps lower tiers when labels collide.
+hip,name,name_iau,v_mag,tier
+32349,Syriusz,Sirius,-1.45,1
+30438,Kanopus,Canopus,-0.62,1
+69673,Arktur,Arcturus,-0.05,1
+71683,Alfa Centauri A,Rigil Kentaurus,-0.01,1
+91262,Wega,Vega,0.03,1
+24608,Kapella,Capella,0.08,1
+24436,Rigel,Rigel,0.18,1
+37279,Procjon,Procyon,0.4,1
+7588,Achernar,Achernar,0.45,1
+27989,Betelgeza,Betelgeuse,0.45,1
+97649,Altair,Altair,0.76,1
+21421,Aldebaran,Aldebaran,0.87,1
+65474,Spika,Spica,0.98,1
+80763,Antares,Antares,1.06,1
+37826,Polluks,Pollux,1.16,1
+113368,Fomalhaut,Fomalhaut,1.17,1
+102098,Deneb,Deneb,1.25,1
+49669,Regulus,Regulus,1.36,1
+25336,Bellatrix,Bellatrix,1.64,1
+26311,Alnilam,Alnilam,1.69,1
+26727,Alnitak,Alnitak,1.74,1
+36850,Kastor,Castor,1.98,1
+14576,Algol,Algol,2.09,1
+11767,Gwiazda Polarna,Polaris,2.13,1
+65378,Mizar,Mizar,2.23,1
+25930,Mintaka,Mintaka,2.25,1
+10826,Mira,Mira,6.47,1
+87937,Gwiazda Barnarda,Barnard's Star,9.54,1
+70890,Proxima Centauri,Proxima Centauri,11.01,1
+68702,Hadar,Hadar,0.61,2
+62434,Mimoza,Mimosa,1.25,2
+60718,Acrux,Acrux,1.33,2
+71681,Alfa Centauri B,Toliman,1.35,2
+33579,Adhara,Adhara,1.5,2
+61084,Gacrux,Gacrux,1.59,2
+25428,Elnath,Elnath,1.65,3
+45238,Miaplacidus,Miaplacidus,1.67,3
+109268,Alnair,Alnair,1.73,3
+62956,Alioth,Alioth,1.76,3
+90185,Kaus Australis,Kaus Australis,1.79,3
+15863,Mirfak,Mirfak,1.79,3
+54061,Dubhe,Dubhe,1.81,3
+34444,Wezen,Wezen,1.83,3
+67301,Alkaid,Alkaid,1.85,3
+41037,Avior,Avior,1.86,3
+86228,Sargas,Sargas,1.86,3
+28360,Menkalinan,Menkalinan,1.9,3
+82273,Atria,Atria,1.91,3
+31681,Alhena,Alhena,1.93,3
+100751,Peacock,Peacock,1.94,3
+30324,Mirzam,Mirzam,1.98,3
+46390,Alphard,Alphard,1.99,3
+42913,Alsephina,Alsephina,1.99,3
+9884,Hamal,Hamal,2.01,3
+3419,Diphda,Diphda,2.04,3
+92855,Nunki,Nunki,2.05,3
+68933,Menkent,Menkent,2.06,3
+677,Alpheratz,Alpheratz,2.07,3
+72607,Kochab,Kochab,2.07,3
+5447,Mirach,Mirach,2.07,3
+27366,Saiph,Saiph,2.07,3
+86032,Rasalhague,Rasalhague,2.08,3
+85927,Shaula,Shaula,2.08,3
+9640,Almach,Almach,2.1,3
+112122,Tiaki,Tiaki,2.12,3
+57632,Denebola,Denebola,2.14,3
+45556,Aspidiske,Aspidiske,2.21,3
+39429,Naos,Naos,2.21,3
+76267,Alphecca,Alphecca,2.22,3
+100453,Sadr,Sadr,2.23,3
+44816,Suhail,Suhail,2.23,3
+87833,Eltanin,Eltanin,2.24,3
+3179,Schedar,Schedar,2.24,3
+746,Caph,Caph,2.28,3
+78401,Dschubba,Dschubba,2.29,3
+82396,Larawag,Larawag,2.29,3
+53910,Merak,Merak,2.34,3
+72105,Izar,Izar,2.35,3
+107315,Enif,Enif,2.38,3
+2081,Ankaa,Ankaa,2.4,3
+58001,Phecda,Phecda,2.41,3
+84012,Sabik,Sabik,2.43,3
+113881,Scheat,Scheat,2.44,3
+105199,Alderamin,Alderamin,2.45,3
+35904,Aludra,Aludra,2.45,3
+45941,Markeb,Markeb,2.47,3
+102488,Aljanah,Aljanah,2.48,3
+113963,Markab,Markab,2.49,3
+14135,Menkar,Menkar,2.54,3
+50583,Algieba,Algieba,2.61,3
+77070,Unukalhai,Unukalhai,2.63,3
+6686,Ruchbah,Ruchbah,2.66,3
+8903,Sheratan,Sheratan,2.7,3
+97278,Tarazed,Tarazed,2.72,3
+72622,Zubenelgenubi,Zubenelgenubi,2.75,3
+17702,Alkione,Alcyone,2.85,3
+63608,Vindemiatrix,Vindemiatrix,2.85,3
+59774,Megrez,Megrez,3.32,3
+95947,Albireo,Albireo,3.37,3
+84345,Rasalgethi,Rasalgethi,3.37,3
+68756,Thuban,Thuban,3.67,3
+65477,Alkor,Alcor,3.99,3

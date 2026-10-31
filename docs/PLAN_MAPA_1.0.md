@@ -85,19 +85,11 @@ niepołączonej `m1-magazyn`):
 - **Otwarte przed publikacją mapy:** hosting eksportów na Hugging Face
   (D-023; konto i wgranie po stronie użytkownika), potem pełne URL-e
   w `web/public/datasets.json` i merge do `master`.
-- **Zadanie viewera: nazwy znanych gwiazd** (zaległość z D-019, „nazwy
-  w M4”; `proper_name` jest dziś puste). Na mapie podpisy ~50–150
-  najbardziej znanych gwiazd po polsku („Syriusz”, „Betelgeza”, „Wega”…).
-  Szkic: statyczna lista w repo (nazwa PL, nazwa IAU/WGSN, numer HIP),
-  dopasowanie po `hip`, eksport `labels.json` z pozycjami obok
-  `points.bin`, w viewerze etykiety HTML/sprite z ukrywaniem przy
-  oddaleniu i tłoku. Gotowe, gdy podpisy są widoczne w obu mapach,
-  a gwiazdy spoza 1,25 kpc albo spoza katalogu są wypisane w raporcie
-  eksportu zamiast cicho pominięte. Przed kodem: wpis w `DECISIONS.md`
-  (źródło nazw, lista, plik eksportu).
+- **Zadanie viewera: nazwy znanych gwiazd** — **zrobione** (D-026):
+  102 gwiazdy z listy IAU, polskie formy, `labels.json` w obu mapach,
+  ukrywanie przy tłoku; opis w `JAK_RYSUJEMY_MAPE.md` §8.
 - **Następny: M6** — przejście na DR4, gdy będzie dostępne (sprawdzić
-  OP-1: gdzie i z jakimi kolumnami). Do tego czasu: hosting mapy i zadanie
-  viewera z nazwami gwiazd.
+  OP-1: gdzie i z jakimi kolumnami). Do tego czasu: hosting mapy.
 
 Termin M2 przestał być twardy (D-012). Archiwum ESA jest wyłączone
 25.11 12:00 – 2.12 CET, ale **głównym serwisem pobierania jest AIP**

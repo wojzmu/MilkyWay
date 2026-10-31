@@ -29,12 +29,21 @@ import Legend from "./components/Legend";
 import FilterPanel from "./components/FilterPanel";
 import DatasetPicker from "./components/DatasetPicker";
 import AboutModal from "./components/AboutModal";
+import { loadStarNames, type StarName } from "./data/starNames";
 import "./App.css";
 
 type View = "3d" | "hr";
 
 export default function App() {
   const [stars, setStars] = useState<Star[]>([]);
+  const [starNames, setStarNames] = useState<Map<string, StarName>>(new Map());
+  useEffect(() => {
+    let ignore = false;
+    loadStarNames().then((m) => !ignore && setStarNames(m));
+    return () => {
+      ignore = true;
+    };
+  }, []);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
@@ -165,6 +174,7 @@ export default function App() {
       pointSize: cloudUi.pointSize,
       brightness: cloudUi.brightness,
       classMask: mask,
+      labels: cloudUi.labels,
     };
   }, [cloud, cloudUi]);
 
@@ -353,6 +363,7 @@ export default function App() {
                   selected={selected}
                   onSelect={setSelected}
                   colorMode={colorMode}
+                  names={starNames}
                 />
               ) : (
                 <HRDiagram
@@ -364,7 +375,11 @@ export default function App() {
               )}
               {colorMode === "category" && <Legend counts={visibleCounts} />}
             </div>
-            <StarDetails star={selected} onClose={() => setSelected(null)} />
+            <StarDetails
+              star={selected}
+              name={selected ? starNames.get(selected.starId) : undefined}
+              onClose={() => setSelected(null)}
+            />
           </>
         )}
       </main>

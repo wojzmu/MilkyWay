@@ -115,7 +115,45 @@ W widoku z boku dysk jest wyraźnie cieńszy niż na pełnej mapie. W liczbach
 płaszczyzną jest 15 771 takich gwiazd, a w przedziale 700–800 pc tylko 917,
 czyli 17 razy mniej.
 
-## 8. Skutki uboczne, o których trzeba pamiętać
+## 8. Nazwy znanych gwiazd
+
+Na mapie podpisujemy **102 gwiazdy**: wszystkie gwiazdy z oficjalnego
+katalogu nazw IAU jaśniejsze niż V = 2,5 (85) oraz 17 słynnych słabszych,
+np. Proxima Centauri, Gwiazda Barnarda i Mira. Lista jest w
+`milkyway/star_names.csv`; tam, gdzie po polsku używa się innej formy,
+podpis jest polski (Syriusz, Betelgeza, Wega, Gwiazda Polarna…). Decyzja:
+D-026.
+
+**Jak trafiamy na gwiazdę.** Każda nazwa ma numer z katalogu Hipparcosa
+(HIP), a nasz katalog ma kolumnę `hip`. Tak znajdujemy wszystkie 102.
+Aż 86 z nich to wiersze Hipparcosa, bo jasne gwiazdy oślepiają detektor
+Gai. Najdalszy jest Deneb, 990 pc, z dużą niepewnością.
+
+**Plik.** Eksport zapisuje `labels.json` (nazwa, pozycja, indeks punktu
+w `points.bin`). Gwiazda nie musi być wśród narysowanych punktów: Proxima
+i Gwiazda Barnarda wypadły przy przerzedzaniu (są słabsze niż G = 6),
+a na mapie tracers 7 karłów jest za słabych. Podpis i tak stoi w ich
+miejscu. Gdyby jakiejś gwiazdy zabrakło w katalogu albo leżała dalej niż
+1250 pc, eksport wypisze ją w raporcie.
+
+**Tłok.** Z daleka wszystkie bliskie gwiazdy (Syriusz 2,6 pc, Wega
+7,8 pc…) zlewają się ze Słońcem. Co klatkę układamy podpisy od
+najbardziej znanych: podpis, który zasłoniłby wcześniejszy, znika. Przy
+oddaleniu zostają więc najsłynniejsze i najdalsze (Deneb, Rigel,
+Alnilam), a po przybliżeniu do Słońca pojawia się kilkadziesiąt nazw.
+Kliknięcie podpisu wybiera gwiazdę. Przełącznik „Star names” chowa
+wszystkie podpisy.
+
+**Mapy 20–60 pc (stary pipeline).** Te same nazwy są na mapach z plików
+CSV. Plików nie zmieniamy: viewer wczytuje `star_names.json` i szuka gwiazd
+po `star_id`. Jedna gwiazda może tam być zapisana jako „HIP 32349” albo
+jako „Gaia DR3 …”, więc każda nazwa ma listę obu wersji (128 identyfikatorów
+na 102 nazwy). W zbiorze 60 pc są wszystkie 58 gwiazd z listy, które leżą
+w tej odległości, w zbiorze 20 pc 41. W zbiorze 120 pc (≥ 0,9 M☉) tylko 12,
+bo nie ma w nim gwiazd bez oszacowania masy, czyli m.in. olbrzymów jak
+Arktur.
+
+## 9. Skutki uboczne, o których trzeba pamiętać
 
 - **Jasny środek to częściowo złudzenie.** Na sześcian parseka przypada
   w pobliżu Słońca (do 250 pc) **19 razy** więcej narysowanych gwiazd niż
@@ -137,7 +175,7 @@ czyli 17 razy mniej.
   gwiazd, a w kierunku obłoku Aquila Rift (l ≈ 15–45°) tylko 61–72 tys.
   Mapa pyłu w M5 pokaże obłoki na początku tych klinów.
 
-## 9. Słowniczek
+## 10. Słowniczek
 
 - **Przerzedzenie (thinning):** zostawienie losowej części punktów
   z zachowaniem proporcji.

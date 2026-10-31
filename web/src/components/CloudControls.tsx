@@ -86,6 +86,14 @@ export default function CloudControls({ ui, maxDist, counts, onChange }: Props) 
           onChange={(e) => onChange({ ...ui, brightness: Number(e.target.value) })}
         />
       </label>
+      <label className="cloudctl__toggle" title="Names of well-known stars; fainter ones hide when labels overlap">
+        <input
+          type="checkbox"
+          checked={ui.labels}
+          onChange={() => onChange({ ...ui, labels: !ui.labels })}
+        />
+        <span>Star names</span>
+      </label>
       <div className="cloudctl__classes">
         {CATEGORY_ORDER.map((c) => (
           <label key={c} className="cloudctl__class">

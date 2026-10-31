@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import type { PointCloud } from "../data/loadPointCloud";
+import { NameLayout, NameOverlay, type NameLabel } from "./StarNames";
 import { categoryColor, type ColorMode } from "../categories";
 
 export interface CloudSettings {
@@ -12,6 +13,7 @@ export interface CloudSettings {
   pointSize: number; // px
   brightness: number; // per-point opacity (additive blending saturates at 1.5 M points)
   classMask: number; // bit c set = class code c visible
+  labels: boolean; // names of well-known stars
 }
 
 interface Props {
@@ -356,6 +358,23 @@ function CameraRig({ apiRef }: { apiRef: React.RefObject<CameraApi | null> }) {
 
 export default function GalaxyField3D(props: Props) {
   const apiRef = useRef<CameraApi | null>(null);
+  const labelEls = useRef<(HTMLDivElement | null)[]>([]);
+  const { labels: cloudLabels } = props.cloud;
+  const labels = useMemo<NameLabel[]>(
+    () =>
+      cloudLabels.map((lb) => ({
+        key: lb.hip,
+        name: lb.name,
+        title: `${lb.nameIau} · HIP ${lb.hip} · ${lb.distPc.toFixed(1)} pc`,
+        tier: lb.tier,
+        pos: lb.pos,
+        clickable: lb.point !== null,
+      })),
+    [cloudLabels],
+  );
+  const shownRef = useRef<(i: number) => boolean>(() => false);
+  shownRef.current = (i) =>
+    props.settings.labels && cloudLabels[i].distPc <= props.settings.distMax;
   return (
     <>
       <Canvas
@@ -375,7 +394,19 @@ export default function GalaxyField3D(props: Props) {
         <Reference />
         <OrbitControls makeDefault enableDamping dampingFactor={0.1} />
         <CameraRig apiRef={apiRef} />
+        {labels.length > 0 && (
+          <NameLayout labels={labels} elsRef={labelEls} shownRef={shownRef}
+                      reserve={[0, 20, 0]} />
+        )}
       </Canvas>
+      <NameOverlay
+        labels={labels}
+        elsRef={labelEls}
+        onPick={(i) => {
+          const p = cloudLabels[i].point;
+          if (p !== null) props.onSelect(p);
+        }}
+      />
       <div className="viewbtns" role="group" aria-label="Camera view">
         <button onClick={() => apiRef.current?.go("top")}>
           Top (face-on)

@@ -1,0 +1,1054 @@
+{
+"format": "milkyway-star-names",
+"version": 1,
+"source": "IAU Catalog of Star Names (WGSN); see milkyway/star_names.csv",
+"dataset_id": "dr3_g15_p0.5_v3",
+"names": [
+{
+"hip": 32349,
+"name": "Syriusz",
+"name_iau": "Sirius",
+"v_mag": -1.45,
+"tier": 1,
+"star_ids": [
+"HIP 32349"
+]
+},
+{
+"hip": 30438,
+"name": "Kanopus",
+"name_iau": "Canopus",
+"v_mag": -0.62,
+"tier": 1,
+"star_ids": [
+"HIP 30438"
+]
+},
+{
+"hip": 69673,
+"name": "Arktur",
+"name_iau": "Arcturus",
+"v_mag": -0.05,
+"tier": 1,
+"star_ids": [
+"HIP 69673"
+]
+},
+{
+"hip": 71683,
+"name": "Alfa Centauri A",
+"name_iau": "Rigil Kentaurus",
+"v_mag": -0.01,
+"tier": 1,
+"star_ids": [
+"HIP 71683"
+]
+},
+{
+"hip": 91262,
+"name": "Wega",
+"name_iau": "Vega",
+"v_mag": 0.03,
+"tier": 1,
+"star_ids": [
+"HIP 91262"
+]
+},
+{
+"hip": 24608,
+"name": "Kapella",
+"name_iau": "Capella",
+"v_mag": 0.08,
+"tier": 1,
+"star_ids": [
+"HIP 24608"
+]
+},
+{
+"hip": 24436,
+"name": "Rigel",
+"name_iau": "Rigel",
+"v_mag": 0.18,
+"tier": 1,
+"star_ids": [
+"HIP 24436"
+]
+},
+{
+"hip": 37279,
+"name": "Procjon",
+"name_iau": "Procyon",
+"v_mag": 0.4,
+"tier": 1,
+"star_ids": [
+"HIP 37279"
+]
+},
+{
+"hip": 7588,
+"name": "Achernar",
+"name_iau": "Achernar",
+"v_mag": 0.45,
+"tier": 1,
+"star_ids": [
+"HIP 7588"
+]
+},
+{
+"hip": 27989,
+"name": "Betelgeza",
+"name_iau": "Betelgeuse",
+"v_mag": 0.45,
+"tier": 1,
+"star_ids": [
+"HIP 27989"
+]
+},
+{
+"hip": 97649,
+"name": "Altair",
+"name_iau": "Altair",
+"v_mag": 0.76,
+"tier": 1,
+"star_ids": [
+"HIP 97649"
+]
+},
+{
+"hip": 21421,
+"name": "Aldebaran",
+"name_iau": "Aldebaran",
+"v_mag": 0.87,
+"tier": 1,
+"star_ids": [
+"HIP 21421"
+]
+},
+{
+"hip": 65474,
+"name": "Spika",
+"name_iau": "Spica",
+"v_mag": 0.98,
+"tier": 1,
+"star_ids": [
+"HIP 65474"
+]
+},
+{
+"hip": 80763,
+"name": "Antares",
+"name_iau": "Antares",
+"v_mag": 1.06,
+"tier": 1,
+"star_ids": [
+"HIP 80763"
+]
+},
+{
+"hip": 37826,
+"name": "Polluks",
+"name_iau": "Pollux",
+"v_mag": 1.16,
+"tier": 1,
+"star_ids": [
+"HIP 37826"
+]
+},
+{
+"hip": 113368,
+"name": "Fomalhaut",
+"name_iau": "Fomalhaut",
+"v_mag": 1.17,
+"tier": 1,
+"star_ids": [
+"HIP 113368"
+]
+},
+{
+"hip": 102098,
+"name": "Deneb",
+"name_iau": "Deneb",
+"v_mag": 1.25,
+"tier": 1,
+"star_ids": [
+"HIP 102098"
+]
+},
+{
+"hip": 49669,
+"name": "Regulus",
+"name_iau": "Regulus",
+"v_mag": 1.36,
+"tier": 1,
+"star_ids": [
+"HIP 49669"
+]
+},
+{
+"hip": 25336,
+"name": "Bellatrix",
+"name_iau": "Bellatrix",
+"v_mag": 1.64,
+"tier": 1,
+"star_ids": [
+"HIP 25336"
+]
+},
+{
+"hip": 26311,
+"name": "Alnilam",
+"name_iau": "Alnilam",
+"v_mag": 1.69,
+"tier": 1,
+"star_ids": [
+"HIP 26311"
+]
+},
+{
+"hip": 26727,
+"name": "Alnitak",
+"name_iau": "Alnitak",
+"v_mag": 1.74,
+"tier": 1,
+"star_ids": [
+"HIP 26727"
+]
+},
+{
+"hip": 36850,
+"name": "Kastor",
+"name_iau": "Castor",
+"v_mag": 1.98,
+"tier": 1,
+"star_ids": [
+"HIP 36850",
+"Gaia DR3 892348694913501952"
+]
+},
+{
+"hip": 14576,
+"name": "Algol",
+"name_iau": "Algol",
+"v_mag": 2.09,
+"tier": 1,
+"star_ids": [
+"HIP 14576"
+]
+},
+{
+"hip": 11767,
+"name": "Gwiazda Polarna",
+"name_iau": "Polaris",
+"v_mag": 2.13,
+"tier": 1,
+"star_ids": [
+"HIP 11767"
+]
+},
+{
+"hip": 65378,
+"name": "Mizar",
+"name_iau": "Mizar",
+"v_mag": 2.23,
+"tier": 1,
+"star_ids": [
+"HIP 65378",
+"Gaia DR3 1563590579347125632"
+]
+},
+{
+"hip": 25930,
+"name": "Mintaka",
+"name_iau": "Mintaka",
+"v_mag": 2.25,
+"tier": 1,
+"star_ids": [
+"HIP 25930",
+"Gaia DR3 3220756843825383936"
+]
+},
+{
+"hip": 10826,
+"name": "Mira",
+"name_iau": "Mira",
+"v_mag": 6.47,
+"tier": 1,
+"star_ids": [
+"HIP 10826"
+]
+},
+{
+"hip": 87937,
+"name": "Gwiazda Barnarda",
+"name_iau": "Barnard's Star",
+"v_mag": 9.54,
+"tier": 1,
+"star_ids": [
+"HIP 87937",
+"Gaia DR3 4472832130942575872"
+]
+},
+{
+"hip": 70890,
+"name": "Proxima Centauri",
+"name_iau": "Proxima Centauri",
+"v_mag": 11.01,
+"tier": 1,
+"star_ids": [
+"HIP 70890",
+"Gaia DR3 5853498713190525696"
+]
+},
+{
+"hip": 68702,
+"name": "Hadar",
+"name_iau": "Hadar",
+"v_mag": 0.61,
+"tier": 2,
+"star_ids": [
+"HIP 68702"
+]
+},
+{
+"hip": 62434,
+"name": "Mimoza",
+"name_iau": "Mimosa",
+"v_mag": 1.25,
+"tier": 2,
+"star_ids": [
+"HIP 62434"
+]
+},
+{
+"hip": 60718,
+"name": "Acrux",
+"name_iau": "Acrux",
+"v_mag": 1.33,
+"tier": 2,
+"star_ids": [
+"HIP 60718"
+]
+},
+{
+"hip": 71681,
+"name": "Alfa Centauri B",
+"name_iau": "Toliman",
+"v_mag": 1.35,
+"tier": 2,
+"star_ids": [
+"HIP 71681",
+"Gaia DR3 5877748442128924544"
+]
+},
+{
+"hip": 33579,
+"name": "Adhara",
+"name_iau": "Adhara",
+"v_mag": 1.5,
+"tier": 2,
+"star_ids": [
+"HIP 33579"
+]
+},
+{
+"hip": 61084,
+"name": "Gacrux",
+"name_iau": "Gacrux",
+"v_mag": 1.59,
+"tier": 2,
+"star_ids": [
+"HIP 61084"
+]
+},
+{
+"hip": 25428,
+"name": "Elnath",
+"name_iau": "Elnath",
+"v_mag": 1.65,
+"tier": 3,
+"star_ids": [
+"HIP 25428"
+]
+},
+{
+"hip": 45238,
+"name": "Miaplacidus",
+"name_iau": "Miaplacidus",
+"v_mag": 1.67,
+"tier": 3,
+"star_ids": [
+"HIP 45238"
+]
+},
+{
+"hip": 109268,
+"name": "Alnair",
+"name_iau": "Alnair",
+"v_mag": 1.73,
+"tier": 3,
+"star_ids": [
+"HIP 109268"
+]
+},
+{
+"hip": 62956,
+"name": "Alioth",
+"name_iau": "Alioth",
+"v_mag": 1.76,
+"tier": 3,
+"star_ids": [
+"HIP 62956"
+]
+},
+{
+"hip": 90185,
+"name": "Kaus Australis",
+"name_iau": "Kaus Australis",
+"v_mag": 1.79,
+"tier": 3,
+"star_ids": [
+"HIP 90185"
+]
+},
+{
+"hip": 15863,
+"name": "Mirfak",
+"name_iau": "Mirfak",
+"v_mag": 1.79,
+"tier": 3,
+"star_ids": [
+"HIP 15863"
+]
+},
+{
+"hip": 54061,
+"name": "Dubhe",
+"name_iau": "Dubhe",
+"v_mag": 1.81,
+"tier": 3,
+"star_ids": [
+"HIP 54061"
+]
+},
+{
+"hip": 34444,
+"name": "Wezen",
+"name_iau": "Wezen",
+"v_mag": 1.83,
+"tier": 3,
+"star_ids": [
+"HIP 34444"
+]
+},
+{
+"hip": 67301,
+"name": "Alkaid",
+"name_iau": "Alkaid",
+"v_mag": 1.85,
+"tier": 3,
+"star_ids": [
+"HIP 67301"
+]
+},
+{
+"hip": 41037,
+"name": "Avior",
+"name_iau": "Avior",
+"v_mag": 1.86,
+"tier": 3,
+"star_ids": [
+"HIP 41037"
+]
+},
+{
+"hip": 86228,
+"name": "Sargas",
+"name_iau": "Sargas",
+"v_mag": 1.86,
+"tier": 3,
+"star_ids": [
+"HIP 86228"
+]
+},
+{
+"hip": 28360,
+"name": "Menkalinan",
+"name_iau": "Menkalinan",
+"v_mag": 1.9,
+"tier": 3,
+"star_ids": [
+"HIP 28360"
+]
+},
+{
+"hip": 82273,
+"name": "Atria",
+"name_iau": "Atria",
+"v_mag": 1.91,
+"tier": 3,
+"star_ids": [
+"HIP 82273"
+]
+},
+{
+"hip": 31681,
+"name": "Alhena",
+"name_iau": "Alhena",
+"v_mag": 1.93,
+"tier": 3,
+"star_ids": [
+"HIP 31681"
+]
+},
+{
+"hip": 100751,
+"name": "Peacock",
+"name_iau": "Peacock",
+"v_mag": 1.94,
+"tier": 3,
+"star_ids": [
+"HIP 100751"
+]
+},
+{
+"hip": 30324,
+"name": "Mirzam",
+"name_iau": "Mirzam",
+"v_mag": 1.98,
+"tier": 3,
+"star_ids": [
+"HIP 30324"
+]
+},
+{
+"hip": 46390,
+"name": "Alphard",
+"name_iau": "Alphard",
+"v_mag": 1.99,
+"tier": 3,
+"star_ids": [
+"HIP 46390"
+]
+},
+{
+"hip": 42913,
+"name": "Alsephina",
+"name_iau": "Alsephina",
+"v_mag": 1.99,
+"tier": 3,
+"star_ids": [
+"HIP 42913"
+]
+},
+{
+"hip": 9884,
+"name": "Hamal",
+"name_iau": "Hamal",
+"v_mag": 2.01,
+"tier": 3,
+"star_ids": [
+"HIP 9884"
+]
+},
+{
+"hip": 3419,
+"name": "Diphda",
+"name_iau": "Diphda",
+"v_mag": 2.04,
+"tier": 3,
+"star_ids": [
+"HIP 3419"
+]
+},
+{
+"hip": 92855,
+"name": "Nunki",
+"name_iau": "Nunki",
+"v_mag": 2.05,
+"tier": 3,
+"star_ids": [
+"HIP 92855"
+]
+},
+{
+"hip": 68933,
+"name": "Menkent",
+"name_iau": "Menkent",
+"v_mag": 2.06,
+"tier": 3,
+"star_ids": [
+"HIP 68933"
+]
+},
+{
+"hip": 677,
+"name": "Alpheratz",
+"name_iau": "Alpheratz",
+"v_mag": 2.07,
+"tier": 3,
+"star_ids": [
+"HIP 677"
+]
+},
+{
+"hip": 72607,
+"name": "Kochab",
+"name_iau": "Kochab",
+"v_mag": 2.07,
+"tier": 3,
+"star_ids": [
+"HIP 72607"
+]
+},
+{
+"hip": 5447,
+"name": "Mirach",
+"name_iau": "Mirach",
+"v_mag": 2.07,
+"tier": 3,
+"star_ids": [
+"HIP 5447"
+]
+},
+{
+"hip": 27366,
+"name": "Saiph",
+"name_iau": "Saiph",
+"v_mag": 2.07,
+"tier": 3,
+"star_ids": [
+"HIP 27366",
+"Gaia DR3 3011968416163350272"
+]
+},
+{
+"hip": 86032,
+"name": "Rasalhague",
+"name_iau": "Rasalhague",
+"v_mag": 2.08,
+"tier": 3,
+"star_ids": [
+"HIP 86032"
+]
+},
+{
+"hip": 85927,
+"name": "Shaula",
+"name_iau": "Shaula",
+"v_mag": 2.08,
+"tier": 3,
+"star_ids": [
+"HIP 85927"
+]
+},
+{
+"hip": 9640,
+"name": "Almach",
+"name_iau": "Almach",
+"v_mag": 2.1,
+"tier": 3,
+"star_ids": [
+"HIP 9640"
+]
+},
+{
+"hip": 112122,
+"name": "Tiaki",
+"name_iau": "Tiaki",
+"v_mag": 2.12,
+"tier": 3,
+"star_ids": [
+"HIP 112122"
+]
+},
+{
+"hip": 57632,
+"name": "Denebola",
+"name_iau": "Denebola",
+"v_mag": 2.14,
+"tier": 3,
+"star_ids": [
+"HIP 57632"
+]
+},
+{
+"hip": 45556,
+"name": "Aspidiske",
+"name_iau": "Aspidiske",
+"v_mag": 2.21,
+"tier": 3,
+"star_ids": [
+"HIP 45556",
+"Gaia DR3 5300300156538723328"
+]
+},
+{
+"hip": 39429,
+"name": "Naos",
+"name_iau": "Naos",
+"v_mag": 2.21,
+"tier": 3,
+"star_ids": [
+"HIP 39429",
+"Gaia DR3 5534788672055388032"
+]
+},
+{
+"hip": 76267,
+"name": "Alphecca",
+"name_iau": "Alphecca",
+"v_mag": 2.22,
+"tier": 3,
+"star_ids": [
+"HIP 76267",
+"Gaia DR3 1222646935698492160"
+]
+},
+{
+"hip": 100453,
+"name": "Sadr",
+"name_iau": "Sadr",
+"v_mag": 2.23,
+"tier": 3,
+"star_ids": [
+"HIP 100453",
+"Gaia DR3 2067518817314952576"
+]
+},
+{
+"hip": 44816,
+"name": "Suhail",
+"name_iau": "Suhail",
+"v_mag": 2.23,
+"tier": 3,
+"star_ids": [
+"HIP 44816"
+]
+},
+{
+"hip": 87833,
+"name": "Eltanin",
+"name_iau": "Eltanin",
+"v_mag": 2.24,
+"tier": 3,
+"star_ids": [
+"HIP 87833"
+]
+},
+{
+"hip": 3179,
+"name": "Schedar",
+"name_iau": "Schedar",
+"v_mag": 2.24,
+"tier": 3,
+"star_ids": [
+"HIP 3179",
+"Gaia DR3 418551920284673408"
+]
+},
+{
+"hip": 746,
+"name": "Caph",
+"name_iau": "Caph",
+"v_mag": 2.28,
+"tier": 3,
+"star_ids": [
+"HIP 746"
+]
+},
+{
+"hip": 78401,
+"name": "Dschubba",
+"name_iau": "Dschubba",
+"v_mag": 2.29,
+"tier": 3,
+"star_ids": [
+"HIP 78401"
+]
+},
+{
+"hip": 82396,
+"name": "Larawag",
+"name_iau": "Larawag",
+"v_mag": 2.29,
+"tier": 3,
+"star_ids": [
+"HIP 82396"
+]
+},
+{
+"hip": 53910,
+"name": "Merak",
+"name_iau": "Merak",
+"v_mag": 2.34,
+"tier": 3,
+"star_ids": [
+"HIP 53910",
+"Gaia DR3 856096765753549056"
+]
+},
+{
+"hip": 72105,
+"name": "Izar",
+"name_iau": "Izar",
+"v_mag": 2.35,
+"tier": 3,
+"star_ids": [
+"HIP 72105",
+"Gaia DR3 1279798794197267072"
+]
+},
+{
+"hip": 107315,
+"name": "Enif",
+"name_iau": "Enif",
+"v_mag": 2.38,
+"tier": 3,
+"star_ids": [
+"HIP 107315"
+]
+},
+{
+"hip": 2081,
+"name": "Ankaa",
+"name_iau": "Ankaa",
+"v_mag": 2.4,
+"tier": 3,
+"star_ids": [
+"HIP 2081",
+"Gaia DR3 4993479684438433792"
+]
+},
+{
+"hip": 58001,
+"name": "Phecda",
+"name_iau": "Phecda",
+"v_mag": 2.41,
+"tier": 3,
+"star_ids": [
+"HIP 58001"
+]
+},
+{
+"hip": 84012,
+"name": "Sabik",
+"name_iau": "Sabik",
+"v_mag": 2.43,
+"tier": 3,
+"star_ids": [
+"HIP 84012"
+]
+},
+{
+"hip": 113881,
+"name": "Scheat",
+"name_iau": "Scheat",
+"v_mag": 2.44,
+"tier": 3,
+"star_ids": [
+"HIP 113881"
+]
+},
+{
+"hip": 105199,
+"name": "Alderamin",
+"name_iau": "Alderamin",
+"v_mag": 2.45,
+"tier": 3,
+"star_ids": [
+"HIP 105199"
+]
+},
+{
+"hip": 35904,
+"name": "Aludra",
+"name_iau": "Aludra",
+"v_mag": 2.45,
+"tier": 3,
+"star_ids": [
+"HIP 35904",
+"Gaia DR3 5605797194566011520"
+]
+},
+{
+"hip": 45941,
+"name": "Markeb",
+"name_iau": "Markeb",
+"v_mag": 2.47,
+"tier": 3,
+"star_ids": [
+"HIP 45941",
+"Gaia DR3 5310393535853560576"
+]
+},
+{
+"hip": 102488,
+"name": "Aljanah",
+"name_iau": "Aljanah",
+"v_mag": 2.48,
+"tier": 3,
+"star_ids": [
+"HIP 102488"
+]
+},
+{
+"hip": 113963,
+"name": "Markab",
+"name_iau": "Markab",
+"v_mag": 2.49,
+"tier": 3,
+"star_ids": [
+"HIP 113963"
+]
+},
+{
+"hip": 14135,
+"name": "Menkar",
+"name_iau": "Menkar",
+"v_mag": 2.54,
+"tier": 3,
+"star_ids": [
+"HIP 14135"
+]
+},
+{
+"hip": 50583,
+"name": "Algieba",
+"name_iau": "Algieba",
+"v_mag": 2.61,
+"tier": 3,
+"star_ids": [
+"HIP 50583"
+]
+},
+{
+"hip": 77070,
+"name": "Unukalhai",
+"name_iau": "Unukalhai",
+"v_mag": 2.63,
+"tier": 3,
+"star_ids": [
+"HIP 77070",
+"Gaia DR3 4429785739602747392"
+]
+},
+{
+"hip": 6686,
+"name": "Ruchbah",
+"name_iau": "Ruchbah",
+"v_mag": 2.66,
+"tier": 3,
+"star_ids": [
+"HIP 6686",
+"Gaia DR3 510204838759030144"
+]
+},
+{
+"hip": 8903,
+"name": "Sheratan",
+"name_iau": "Sheratan",
+"v_mag": 2.7,
+"tier": 3,
+"star_ids": [
+"HIP 8903"
+]
+},
+{
+"hip": 97278,
+"name": "Tarazed",
+"name_iau": "Tarazed",
+"v_mag": 2.72,
+"tier": 3,
+"star_ids": [
+"HIP 97278",
+"Gaia DR3 4302054339959905920"
+]
+},
+{
+"hip": 72622,
+"name": "Zubenelgenubi",
+"name_iau": "Zubenelgenubi",
+"v_mag": 2.75,
+"tier": 3,
+"star_ids": [
+"HIP 72622"
+]
+},
+{
+"hip": 17702,
+"name": "Alkione",
+"name_iau": "Alcyone",
+"v_mag": 2.85,
+"tier": 3,
+"star_ids": [
+"HIP 17702",
+"Gaia DR3 66714384142368256"
+]
+},
+{
+"hip": 63608,
+"name": "Vindemiatrix",
+"name_iau": "Vindemiatrix",
+"v_mag": 2.85,
+"tier": 3,
+"star_ids": [
+"HIP 63608",
+"Gaia DR3 3736865265441207424"
+]
+},
+{
+"hip": 59774,
+"name": "Megrez",
+"name_iau": "Megrez",
+"v_mag": 3.32,
+"tier": 3,
+"star_ids": [
+"HIP 59774",
+"Gaia DR3 1575287046603605888"
+]
+},
+{
+"hip": 95947,
+"name": "Albireo",
+"name_iau": "Albireo",
+"v_mag": 3.37,
+"tier": 3,
+"star_ids": [
+"HIP 95947",
+"Gaia DR3 2026116260337482112"
+]
+},
+{
+"hip": 84345,
+"name": "Rasalgethi",
+"name_iau": "Rasalgethi",
+"v_mag": 3.37,
+"tier": 3,
+"star_ids": [
+"HIP 84345"
+]
+},
+{
+"hip": 68756,
+"name": "Thuban",
+"name_iau": "Thuban",
+"v_mag": 3.67,
+"tier": 3,
+"star_ids": [
+"HIP 68756",
+"Gaia DR3 1667976701458958848"
+]
+},
+{
+"hip": 65477,
+"name": "Alkor",
+"name_iau": "Alcor",
+"v_mag": 3.99,
+"tier": 3,
+"star_ids": [
+"HIP 65477",
+"Gaia DR3 1565090003967879424"
+]
+}
+]
+}

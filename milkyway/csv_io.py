@@ -83,8 +83,15 @@ def _format_column(col, typ):
     return ["" if v is None else str(v) for v in col.to_pylist()]
 
 
-def write_catalogue_csv(table, path):
-    """Write `table` as a legacy catalogue CSV (drops source_id/hip/healpix)."""
+def write_catalogue_csv(table, path, *, max_rows=500_000):
+    """Write `table` as a legacy catalogue CSV (drops source_id/hip/healpix).
+
+    CSV export is only for small tables (plan S1 dec. 10: < 5e5 rows); larger ones
+    raise ValueError unless `max_rows=None`.
+    """
+    if max_rows is not None and table.num_rows > max_rows:
+        raise ValueError(f"refusing CSV export of {table.num_rows} rows "
+                         f"(limit {max_rows}; pass max_rows=None to override)")
     cols = [_format_column(table[c].combine_chunks(), table.schema.field(c).type)
             for c in LEGACY_CSV_COLUMNS]
     with open(path, "w", newline="", encoding="utf-8") as f:

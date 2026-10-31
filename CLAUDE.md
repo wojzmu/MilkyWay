@@ -114,8 +114,12 @@ CSV pipeline runs without them.
 **Store invariants** (tested in `tests/test_storage.py`): `source_id` never goes
 through float64 (ids exceed 2⁵³); a dataset is immutable once `manifest.json`
 says `complete` — rebuilds get a new `dataset_id`; partition files are written as
-`.tmp` then renamed and the manifest last; `open_catalog` refuses anything else.
-Schema changes bump `schema.SCHEMA_VERSION` and get a `DECISIONS.md` entry.
+`.tmp` then renamed and the manifest last. `open_catalog` (footers only) checks the
+schema version and columns, that `catalog/` holds exactly the listed files, each
+file's schema and row count, and `expected_partitions`; content changes need
+`verify_hashes=True`. Readers use the manifest's file list, never a glob.
+Schema changes bump `schema.SCHEMA_VERSION` (old datasets then refuse to open
+until rebuilt) and get a `DECISIONS.md` entry.
 
 ### Pipeline flow
 

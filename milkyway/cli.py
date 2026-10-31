@@ -3,6 +3,7 @@ and render the figures."""
 import argparse
 import hashlib
 import os
+import re
 
 import pandas as pd
 
@@ -12,9 +13,27 @@ from .pipeline import build_merged_catalogue
 from .plots import _resolve_path, render_all
 
 
+_ID_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+_RESERVED_IDS = ("reference",)         # data/reference holds the frozen reference CSV
+
+
+def _id_problem(dataset_id):
+    """Why `dataset_id` is not a usable dataset id, or None."""
+    if not _ID_RE.match(dataset_id) or dataset_id in (".", ".."):
+        return f"invalid dataset id {dataset_id!r} (allowed: letters, digits, '.', '_', '-')"
+    if dataset_id in _RESERVED_IDS:
+        return f"dataset id {dataset_id!r} is reserved"
+    return None
+
+
+def _is_path(value):
+    return os.path.isabs(value) or any(s and s in value for s in (os.sep, os.altsep))
+
+
 def _dataset_dir(dir_or_id, data_dir):
-    """An existing directory path as given, else `<data_dir>/<id>`."""
-    return dir_or_id if os.path.isdir(dir_or_id) else os.path.join(data_dir, dir_or_id)
+    """A value with a path separator (or absolute) is a directory as given; a bare id
+    is always `<data_dir>/<id>`, whatever the cwd holds."""
+    return dir_or_id if _is_path(dir_or_id) else os.path.join(data_dir, dir_or_id)
 
 
 def _to_parquet(csv_path, dataset_id, data_dir):
@@ -45,7 +64,7 @@ def _export_csv(dataset, out_path):
     """Write a dataset as the legacy CSV (dist_pc ascending, like the pipeline)."""
     from . import catalog_query, csv_io
     table = catalog_query.read_table(dataset)
-    csv_io.write_catalogue_csv(table, out_path)
+    csv_io.write_catalogue_csv(table, out_path)        # default max_rows guard
     print(f"Wrote {out_path} ({table.num_rows} stars)")
 
 
@@ -89,6 +108,15 @@ def main(argv=None):
                      "or --plot-only")
     if args.dataset and not (args.plot_only or args.export_csv):
         parser.error("--dataset requires --plot-only or --export-csv")
+
+    if args.dataset_id is not None and (msg := _id_problem(args.dataset_id)):
+        parser.error(msg)
+    if args.to_parquet and args.dataset_id is None:
+        stem = os.path.splitext(os.path.basename(args.to_parquet))[0]
+        if msg := _id_problem(stem):
+            parser.error(f"{msg}; pass --dataset-id")
+    if args.dataset and not _is_path(args.dataset) and (msg := _id_problem(args.dataset)):
+        parser.error(msg)
 
     if args.to_parquet:
         _to_parquet(args.to_parquet, args.dataset_id, args.data_dir)

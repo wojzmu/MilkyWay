@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import pytest
 
@@ -211,11 +212,58 @@ def test_refuses_leftover_parquet(sample_table, tmp_path):
 
 
 def test_refuses_partition_split_across_tables(sample_table, tmp_path):
-    half = sample_table.num_rows // 2
+    # Gaia rows only, so the cross-table hip check cannot fire first.
+    gaia = sample_table.filter(pc.equal(sample_table["source_catalogue"], "Gaia"))
+    half = gaia.num_rows // 2
     with pytest.raises(ValueError, match="split"):
-        storage.write_dataset([sample_table.slice(0, half),
-                               sample_table.slice(0, half)], tmp_path / "ds",
+        storage.write_dataset([gaia.slice(0, half), gaia.slice(0, half)], tmp_path / "ds",
                               dataset_id="x", selection=SEL, source=SRC)
+
+
+def test_refuses_hip_duplicated_across_tables(sample_table, tmp_path):
+    hip = sample_table.filter(pc.equal(sample_table["source_catalogue"], "Hipparcos"))
+    parts = pc.shift_right(hip["healpix"], 20).to_pylist()
+    a = hip.filter(pc.equal(hip["healpix"], hip["healpix"][0]))
+    # Same hip, moved to a different partition: only a cross-table check sees it.
+    other = next(i for i, k in enumerate(parts) if k != parts[0])
+    b = hip.slice(other, 1)
+    for name in ("hip", "star_id"):
+        i = b.schema.get_field_index(name)
+        b = b.set_column(i, b.schema.field(i), a[name].slice(0, 1))
+    with pytest.raises(ValueError, match="hip duplicated"):
+        storage.write_dataset([a, b], tmp_path / "ds", dataset_id="x",
+                              selection=SEL, source=SRC)
+
+
+def test_expected_partitions_missing_blocks_manifest(sample_table, tmp_path):
+    parts = set(pc.shift_right(sample_table["healpix"], 20).to_pylist())
+    absent = min(set(range(192)) - parts)
+    with pytest.raises(ValueError, match="missing"):
+        storage.write_dataset([sample_table], tmp_path / "ds", dataset_id="x",
+                              selection=SEL, source=SRC,
+                              expected_partitions=parts | {absent})
+    assert not (tmp_path / "ds" / storage.MANIFEST_NAME).exists()
+
+
+def test_expected_partitions_recorded_and_checked(sample_table, tmp_path):
+    d = tmp_path / "ds"
+    parts = sorted(set(pc.shift_right(sample_table["healpix"], 20).to_pylist()))
+    m = storage.write_dataset([sample_table], d, dataset_id="x", selection=SEL,
+                              source=SRC, expected_partitions=parts)
+    assert m["storage"]["expected_partitions"] == parts
+    storage.open_catalog(d)
+    m["storage"]["expected_partitions"] = sorted(set(range(192)))
+    (d / storage.MANIFEST_NAME).write_text(json.dumps(m))
+    with pytest.raises(storage.IncompleteDatasetError, match="expected_partitions"):
+        storage.open_catalog(d)
+
+
+def test_tmp_outside_dataset_files_kept(sample_table, tmp_path):
+    d = tmp_path / "ds"
+    d.mkdir()
+    (d / "notes.tmp").write_bytes(b"keep me")
+    _build(sample_table, d)
+    assert (d / "notes.tmp").read_bytes() == b"keep me"
 
 
 def test_orphan_tmp_files_removed(sample_table, tmp_path):
@@ -243,6 +291,32 @@ def test_open_missing_manifest(fresh):
         storage.open_catalog(fresh)
     with pytest.warns(UserWarning):
         assert storage.open_catalog(fresh, allow_incomplete=True) is None
+
+
+def test_open_refuses_other_schema_version(fresh):
+    p = fresh / storage.MANIFEST_NAME
+    m = json.loads(p.read_text())
+    m["schema_version"] = schema.SCHEMA_VERSION + 1
+    p.write_text(json.dumps(m))
+    with pytest.raises(storage.IncompleteDatasetError, match="schema version"):
+        storage.open_catalog(fresh)
+
+
+def test_open_refuses_file_with_other_schema(fresh):
+    m = storage.open_catalog(fresh)
+    f = fresh / m["storage"]["partitions"][0]["path"]
+    pq.write_table(pq.read_table(f).drop_columns(["x_pc"]), f)
+    with pytest.raises(storage.IncompleteDatasetError, match="file schema"):
+        storage.open_catalog(fresh)
+
+
+@pytest.mark.parametrize("name", ["part-0.parquet.bak", "desktop.ini"])
+def test_open_refuses_stray_file_in_catalog(fresh, name):
+    m = storage.open_catalog(fresh)
+    f = fresh / m["storage"]["partitions"][0]["path"]
+    shutil.copy(f, f.with_name(name))
+    with pytest.raises(storage.IncompleteDatasetError, match="unexpected"):
+        storage.open_catalog(fresh)
 
 
 def test_open_status_building(fresh):

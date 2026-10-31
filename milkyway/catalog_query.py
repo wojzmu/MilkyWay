@@ -19,14 +19,23 @@ from . import schema, storage
 _INT_DTYPES = {pa.int64(): pd.Int64Dtype(), pa.int32(): pd.Int64Dtype()}
 
 
+def _partition_files(dataset_dir, manifest):
+    """Absolute paths of exactly the files the manifest lists (never a glob)."""
+    root = Path(dataset_dir).resolve()
+    return [(root / p["path"]).as_posix() for p in manifest["storage"]["partitions"]]
+
+
 def connect(dataset_dir, *, verify_hashes=False):
     """Open an in-memory DuckDB connection with a `catalog` view over the dataset."""
     manifest = storage.open_catalog(dataset_dir, verify_hashes=verify_hashes)
-    glob = (Path(dataset_dir).resolve() / "catalog").as_posix() + "/*/*.parquet"
+    # DDL cannot be parameterised: the manifest's file list goes in as SQL string
+    # literals (quotes doubled). An explicit list, not a glob, so stray files and
+    # glob characters in the path ('[', '*') cannot change what is read.
+    files = ", ".join("'" + f.replace("'", "''") + "'"
+                      for f in _partition_files(dataset_dir, manifest))
     con = duckdb.connect(":memory:")
-    # DDL cannot be parameterised; the path is a SQL literal with quotes doubled.
     con.execute(
-        f"CREATE VIEW catalog AS SELECT * FROM read_parquet('{glob.replace(chr(39), chr(39) * 2)}', "
+        f"CREATE VIEW catalog AS SELECT * FROM read_parquet([{files}], "
         "hive_partitioning = true, hive_types = {'part_hpx': INTEGER})")
     level = int(manifest["storage"]["partition_level"])
     con.execute("CREATE TABLE catalog_meta AS SELECT ?::INTEGER AS partition_level", [level])
@@ -35,9 +44,9 @@ def connect(dataset_dir, *, verify_hashes=False):
 
 def read_table(dataset_dir, columns=None, *, verify_hashes=False):
     """All rows of a dataset as a `pa.Table`, sorted by dist_pc ascending."""
-    storage.open_catalog(dataset_dir, verify_hashes=verify_hashes)
-    table = pq.read_table(Path(dataset_dir) / "catalog", schema=schema.CATALOGUE_SCHEMA,
-                          columns=columns)
+    manifest = storage.open_catalog(dataset_dir, verify_hashes=verify_hashes)
+    table = pq.read_table(_partition_files(dataset_dir, manifest),
+                          schema=schema.CATALOGUE_SCHEMA, columns=columns)
     if "dist_pc" in table.column_names:
         table = table.take(pc.sort_indices(table, sort_keys=[("dist_pc", "ascending")]))
     return table

@@ -140,7 +140,8 @@ def validate(table):
 
     Checks: exact schema (names, order, types); no nulls (or NaN) in non-nullable
     fields; enum membership; unique star_id/source_id/hip; star_id agrees with
-    source_id/hip and source_catalogue; healpix == source_id >> 35 for Gaia rows.
+    source_id/hip and source_catalogue; no +-inf in float columns; healpix in range,
+    == source_id >> 35 for Gaia rows and == the level-12 pixel of (ra, dec) for Hipparcos.
     """
     import pyarrow.compute as pc
 
@@ -161,6 +162,10 @@ def validate(table):
                 n_bad += pc.sum(pc.is_nan(col)).as_py() or 0
             if n_bad:
                 problems.append(f"{field.name}: {n_bad} null/NaN in non-nullable column")
+        if pa.types.is_floating(field.type):
+            n_inf = pc.sum(pc.is_inf(col)).as_py() or 0
+            if n_inf:
+                problems.append(f"{field.name}: {n_inf} infinite values")
         if field.name in ENUMS:
             bad = pc.filter(col, pc.invert(pc.is_in(col, pa.array(ENUMS[field.name]))))
             if len(bad):
@@ -190,6 +195,19 @@ def validate(table):
         hpx = pc.shift_right(gaia["source_id"], GAIA_HEALPIX_SHIFT)
         if not pc.all(pc.equal(gaia["healpix"], hpx)).as_py():
             problems.append("healpix != source_id >> 35 on some Gaia rows")
+    n_pix = 12 * 4 ** HEALPIX_LEVEL
+    if len(table) and not pc.all(pc.and_(pc.greater_equal(table["healpix"], 0),
+                                         pc.less(table["healpix"], n_pix))).as_py():
+        problems.append(f"healpix outside [0, {n_pix})")
+    elif len(hip) and not any(hip[c].null_count or pc.any(pc.is_nan(hip[c])).as_py()
+                              for c in ("ra", "dec")):    # NaN reported above
+        import astropy.units as u                      # lazy: astropy convention
+        from astropy_healpix import HEALPix
+        hpx = HEALPix(nside=2 ** HEALPIX_LEVEL, order="nested")
+        want = hpx.lonlat_to_healpix(hip["ra"].to_numpy() * u.deg,
+                                     hip["dec"].to_numpy() * u.deg)
+        if not np.array_equal(hip["healpix"].to_numpy(), want):
+            problems.append("healpix inconsistent with ra/dec on some Hipparcos rows")
 
     if problems:
         raise SchemaError("; ".join(problems))

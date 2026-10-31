@@ -11,6 +11,25 @@ decyzja — dopisz.
 
 ---
 
+## D-018 · 2026-10-31 · Twardsze kontrole magazynu po przeglądzie M1
+**Decyzja:**
+- `open_catalog` odmawia zbioru o innej `schema_version` albo liście
+  kolumn niż kod, z obcym plikiem w `catalog/` i z plikiem o innym
+  schemacie; czytelnicy (DuckDB, pyarrow) czytają tylko listę plików z
+  manifestu, nigdy glob.
+- `write_dataset(expected_partitions=…)`: brak lub nadmiar partycji
+  blokuje zapis manifestu; lista trafia do manifestu. M2 podaje 192
+  piksele z `docs/data/dr3_g15_hpx2_counts.csv`.
+- `hip` unikalny w całym zbiorze (kontrola między kafelkami).
+- `validate` odrzuca ±inf, `healpix` spoza [0, 12·4¹²) i `healpix`
+  wiersza Hipparcosa niezgodny z (ra, dec).
+- `dataset_id`: tylko `[A-Za-z0-9._-]`, bez `.`, `..` i `reference`;
+  eksport CSV ograniczony do 5·10⁵ wierszy (S1 dec. 10).
+**Dlaczego:** przegląd gałęzi `m1-magazyn` odtworzył m.in. zdublowane
+gwiazdy przy obcym pliku w `catalog/`, ciche nulle po zmianie schematu i
+kasowanie `*.tmp` poza zbiorem przy `--dataset-id ..`.
+**Źródło:** przegląd kodu (subagent) i poprawki, 31.10.2026.
+
 ## D-017 · 2026-10-31 · HATS (LSDB) jako zapas pobierania, nie główne źródło
 **Decyzja:** M2 pobiera przez TAP z AIP (D-012). Kopia Gaia DR3 w formacie
 HATS (`https://linea.data.lsdb.io/hats/gaia_dr3`, Parquet w pikselach

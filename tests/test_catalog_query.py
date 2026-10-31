@@ -74,3 +74,13 @@ def test_within_distance_and_z_histogram(built):
     sub = ref[ref["dist_pc"] <= cut]
     want = pd.Series(np.floor(sub["z_pc"].astype("float64") / 10.0) * 10.0).value_counts()
     assert dict(zip(h["z_lo"], h["n"])) == want.to_dict()
+
+
+def test_reads_exactly_manifest_files_under_glob_like_path(sample_csv_path, tmp_path):
+    # '[' would be a glob character if the path were inlined into a pattern.
+    d = tmp_path / "run[1]"
+    table = csv_io.read_catalogue_csv(sample_csv_path)
+    storage.write_dataset([table], d, dataset_id="x", selection={}, source={})
+    con = cq.connect(d)
+    assert con.execute("SELECT count(*) FROM catalog").fetchone()[0] == table.num_rows
+    assert cq.read_table(d).num_rows == table.num_rows

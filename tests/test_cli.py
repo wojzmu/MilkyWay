@@ -1,4 +1,5 @@
 import json
+import os
 
 import pandas as pd
 import pytest
@@ -45,3 +46,32 @@ def test_default_dataset_id_is_stem(sample_csv_path, tmp_path):
 def test_misuse(argv):
     with pytest.raises(SystemExit):
         cli.main(argv)
+
+
+@pytest.mark.parametrize("bad", ["", ".", "..", "a/b", "a\b", "a b", "reference", "ü"])
+def test_dataset_id_rejected(sample_csv_path, tmp_path, bad):
+    with pytest.raises(SystemExit):
+        cli.main(["--to-parquet", str(sample_csv_path), "--dataset-id", bad,
+                  "--data-dir", str(tmp_path)])
+
+
+def test_stem_id_validated(tmp_path):
+    p = tmp_path / "bad name.csv"
+    with pytest.raises(SystemExit):
+        cli.main(["--to-parquet", str(p), "--data-dir", str(tmp_path)])
+
+
+@pytest.mark.parametrize("bad", [".", "..", "reference", "a b"])
+def test_dataset_bare_id_validated(tmp_path, bad):
+    with pytest.raises(SystemExit):
+        cli.main(["--dataset", bad, "--export-csv", str(tmp_path / "o.csv"),
+                  "--data-dir", str(tmp_path)])
+
+
+def test_dataset_dir_resolution(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "t").mkdir()                       # cwd dir must not shadow the id
+    assert cli._dataset_dir("t", "D") == os.path.join("D", "t")
+    assert cli._dataset_dir(os.path.join(".", "t"), "D") == os.path.join(".", "t")
+    assert cli._dataset_dir("sub/t", "D") == "sub/t"
+    assert cli._dataset_dir(str(tmp_path / "t"), "D") == str(tmp_path / "t")

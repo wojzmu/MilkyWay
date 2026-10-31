@@ -40,30 +40,44 @@ def partition_path(part_hpx):
 
 
 def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
-                  level=schema.PARTITION_LEVEL, row_group_size=ROW_GROUP_SIZE):
+                  level=schema.PARTITION_LEVEL, row_group_size=ROW_GROUP_SIZE,
+                  expected_partitions=None):
     """Write `tables` (an iterable of schema-conforming pa.Tables) as a dataset.
 
     Streaming rule: every partition must arrive whole inside a single input table
     (true for one-table inputs and for M2's one-tile-per-level-2-pixel download),
     so memory is bounded by the largest input table. A partition seen twice raises.
+    `hip` must be unique across the whole dataset, not just within one table.
+
+    `expected_partitions` (iterable of part_hpx, optional): the partitions the build
+    must produce. Any missing or extra one raises before the manifest is written, so
+    a download that silently skipped a tile can never be marked complete. It is
+    stored in the manifest and re-checked by open_catalog().
 
     `selection` (the cuts that define the sample, e.g. parallax floor and `g_max`,
     None when unset) and `source` (where the rows came from) are stored verbatim in
     the manifest so the dataset can be rebuilt from it. Returns the manifest dict.
     """
     root = Path(dataset_dir)
+    expected = None if expected_partitions is None else sorted({int(k) for k in expected_partitions})
     if (root / MANIFEST_NAME).exists():
         raise FileExistsError(f"{root} already holds a dataset; build a new dataset_id")
-    if root.exists() and any(p for p in root.rglob("*.parquet")):
+    if (root / "catalog").exists() and any((root / "catalog").rglob("*.parquet")):
         raise FileExistsError(f"{root} holds partition files from an earlier build; "
                               f"remove the directory first")
     root.mkdir(parents=True, exist_ok=True)
-    for orphan in root.rglob("*.tmp"):
-        orphan.unlink()
+    # Only our own leftovers: partition temp files and the manifest temp file.
+    for orphan in [*(root / "catalog").glob("*/*.tmp"), root / (MANIFEST_NAME + ".tmp")]:
+        orphan.unlink(missing_ok=True)
 
-    partitions = {}
+    partitions, seen_hip = {}, set()
     for table in tables:
         schema.validate(table)
+        hips = table["hip"].drop_null().to_pylist()
+        dup = seen_hip.intersection(hips)
+        if dup:
+            raise ValueError(f"hip duplicated across input tables: {sorted(dup)[:10]}")
+        seen_hip.update(hips)
         parts = pc.shift_right(table["healpix"], 2 * (schema.HEALPIX_LEVEL - level))
         for k in pc.unique(parts).to_pylist():
             if k in partitions:
@@ -71,6 +85,13 @@ def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
                                  f"partition must arrive in one table")
             rows = table.filter(pc.equal(parts, k))
             partitions[k] = _write_partition(root, k, rows, row_group_size)
+
+    if expected is not None and sorted(partitions) != expected:
+        missing = sorted(set(expected) - set(partitions))
+        extra = sorted(set(partitions) - set(expected))
+        raise ValueError(f"partitions differ from expected_partitions: missing "
+                         f"{missing[:10]} ({len(missing)}), unexpected {extra[:10]} "
+                         f"({len(extra)}); no manifest written")
 
     manifest = {
         "manifest_version": MANIFEST_VERSION,
@@ -88,6 +109,7 @@ def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
             "sort_key": list(schema.SORT_KEY),
             "row_group_size": row_group_size,
             "compression": f"{COMPRESSION}:{COMPRESSION_LEVEL}",
+            "expected_partitions": expected,
             "total_rows": sum(p["rows"] for p in partitions.values()),
             "partitions": [partitions[k] for k in sorted(partitions)],
         },
@@ -98,8 +120,8 @@ def write_dataset(tables, dataset_dir, *, dataset_id, selection, source,
 
 
 def _write_partition(root, k, rows, row_group_size):
-    order = pc.sort_indices(rows, sort_keys=[(c, "ascending", "at_end")
-                                             for c in schema.SORT_KEY])
+    # Nulls sort last by default; 2-tuples keep this working on older pyarrow.
+    order = pc.sort_indices(rows, sort_keys=[(c, "ascending") for c in schema.SORT_KEY])
     rows = rows.take(order)
     rel = partition_path(k)
     final = root / rel
@@ -116,10 +138,13 @@ def _write_partition(root, k, rows, row_group_size):
 def open_catalog(dataset_dir, *, allow_incomplete=False, verify_hashes=False):
     """Check a dataset is complete and intact; return its manifest.
 
-    Cheap by default: compares the partition files on disk with the manifest's list
-    and each file's footer row count with the recorded one. `verify_hashes=True`
+    Cheap by default (reads only footers): the manifest's schema version and columns
+    match this code; every file under `catalog/` is listed in the manifest and vice
+    versa; each file's Arrow schema equals CATALOGUE_SCHEMA and its row count the
+    recorded one; recorded `expected_partitions` are all present. `verify_hashes=True`
     also re-hashes every file (reads all bytes). `allow_incomplete=True` skips the
-    checks for a dataset without a `complete` manifest and returns None for it.
+    checks for a dataset without a `complete` manifest and returns it (or None).
+    Readers must read exactly `manifest["storage"]["partitions"][*]["path"]`.
     """
     root = Path(dataset_dir)
     path = root / MANIFEST_NAME
@@ -131,14 +156,29 @@ def open_catalog(dataset_dir, *, allow_incomplete=False, verify_hashes=False):
             return manifest
         raise IncompleteDatasetError(f"{root}: no complete manifest")
 
-    listed = {p["path"]: p for p in manifest["storage"]["partitions"]}
-    on_disk = {p.relative_to(root).as_posix() for p in root.glob("catalog/*/*.parquet")}
+    if manifest.get("schema_version") != schema.SCHEMA_VERSION:
+        raise IncompleteDatasetError(
+            f"{root}: schema version {manifest.get('schema_version')}, this code reads "
+            f"{schema.SCHEMA_VERSION}; rebuild or migrate the dataset")
+    if manifest.get("columns") != list(schema.COLUMNS):
+        raise IncompleteDatasetError(f"{root}: manifest columns differ from the schema")
+
+    st = manifest["storage"]
+    listed = {p["path"]: p for p in st["partitions"]}
+    on_disk = {p.relative_to(root).as_posix()
+               for p in (root / "catalog").rglob("*") if p.is_file()}
     if on_disk != set(listed):
         raise IncompleteDatasetError(
             f"{root}: files differ from manifest (missing {sorted(set(listed) - on_disk)[:5]}, "
             f"unexpected {sorted(on_disk - set(listed))[:5]})")
+    expected = st.get("expected_partitions")
+    if expected is not None and sorted(p["part_hpx"] for p in st["partitions"]) != expected:
+        raise IncompleteDatasetError(f"{root}: partitions differ from expected_partitions")
     for rel, entry in listed.items():
-        n = pq.ParquetFile(root / rel).metadata.num_rows
+        pf = pq.ParquetFile(root / rel)
+        if not pf.schema_arrow.equals(schema.CATALOGUE_SCHEMA, check_metadata=False):
+            raise IncompleteDatasetError(f"{root}/{rel}: file schema differs from CATALOGUE_SCHEMA")
+        n = pf.metadata.num_rows
         if n != entry["rows"]:
             raise IncompleteDatasetError(f"{root}/{rel}: {n} rows, manifest says {entry['rows']}")
         if verify_hashes and _sha256(root / rel) != entry["sha256"]:

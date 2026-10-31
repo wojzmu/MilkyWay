@@ -94,3 +94,13 @@ def test_unknown_prefix_raises(sample_csv_path, tmp_path):
     df.to_csv(p, index=False)
     with pytest.raises(ValueError, match="TYC 123"):
         read_catalogue_csv(p)
+
+
+def test_write_row_limit(table, tmp_path):
+    out = tmp_path / "x.csv"
+    n = table.num_rows
+    with pytest.raises(ValueError, match=str(n)):
+        write_catalogue_csv(table, out, max_rows=n - 1)
+    assert not out.exists()
+    write_catalogue_csv(table, out, max_rows=n)
+    write_catalogue_csv(table, out, max_rows=None)

@@ -21,9 +21,16 @@ decyzja — dopisz.
 - Znacznik Słońca ma stały rozmiar na ekranie (promień 4 px,
   `web/src/components/SunMarker.tsx`) zamiast kuli o stałym promieniu
   w scenie (7 pc na mapach 1,25 kpc, 0,18 pc w widoku CSV).
+- Gwiazdy z nazwami w 1,25 kpc trafiają do eksportu viewera zawsze (jak
+  G < 6), z pominięciem przerzedzania i `--abs-mag-max`; `index.json`
+  `sampling.n_named_extra` liczy te spoza progu jasności. Pełna mapa
+  1 505 771 punktów (+2: Proxima, Gwiazda Barnarda), tracers 1 269 282
+  (+7 karłów słabszych niż M_G₀ = 2, m.in. Altair i Procjon). Wszystkie
+  102 podpisy są klikalne.
 **Dlaczego:** mieszanka polskich nazw z angielskim interfejsem była
 niespójna (uwaga użytkownika). Kula 7 pc po przybliżeniu zasłaniała
-sąsiednie gwiazdy.
+sąsiednie gwiazdy. Podpis bez punktu nie dawał się kliknąć (Altair na
+mapie tracers), co wyglądało jak błąd.
 **Źródło:** rozmowa w sesji Claude Code, 31.10.2026.
 
 ## D-026 · 2026-10-31 · Nazwy znanych gwiazd na mapie

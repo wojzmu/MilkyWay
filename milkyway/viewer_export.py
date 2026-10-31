@@ -38,8 +38,9 @@ Version 1 (float32 positions, 17 B/star) is no longer written; the viewer still 
 missing. details.bin keeps the observed g_mag and bp_rp.
 
 Thinning: a star is kept when splitmix64(id) < f * 2**64 with one f = target / N
-everywhere (keeps the disc's contrast); stars brighter than `always_g_max` are always
-kept and come first. Inside each group points are ordered by hash, so every prefix is
+everywhere (keeps the disc's contrast); stars brighter than `always_g_max` and the
+named stars of star_names.csv within `dist_max_pc` are always kept and come first.
+Named stars bypass `abs_mag_max` too, so every label has a point to click (D-027). Inside each group points are ordered by hash, so every prefix is
 itself a random sample (the viewer can draw fewer points with drawRange).
 """
 import hashlib
@@ -215,19 +216,25 @@ def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
     # named stars' rows whatever the cut.
     names = load_star_names(names_file)
     name_hips = pa.array([nm["hip"] for nm in names], pa.int32())
-    kept, named_rows = [], []
+    kept, named_rows, n_named_extra = [], [], 0
     for f in files:
         t = pq.read_table(f, columns=_COLUMNS, schema=schema.CATALOGUE_SCHEMA)
-        named = t.filter(pc.fill_null(pc.is_in(t["hip"], name_hips), False))
+        is_named = pc.fill_null(pc.is_in(t["hip"], name_hips), False)
+        named = t.filter(is_named)
         if named.num_rows:
             named_rows.append(named)
-        t = t.filter(_eligible(t, dist_max_pc, abs_mag_max))
+        eligible = _eligible(t, dist_max_pc, abs_mag_max)
+        named_in = pc.and_(is_named, pc.fill_null(pc.less_equal(t["dist_pc"], dist_max_pc),
+                                                  False))
+        n_named_extra += pc.sum(pc.and_(named_in, pc.invert(eligible))).as_py() or 0
+        sel = pc.or_(eligible, named_in)
+        t, named_in = t.filter(sel), named_in.filter(sel)
         if t.num_rows == 0:
             continue
         ids = star_ids(t)
         h = splitmix64(ids.view(np.uint64))
         g = _f32(t, "g_mag")
-        always = g < always_g_max                     # NaN -> False
+        always = (g < always_g_max) | named_in.to_numpy(zero_copy_only=False)  # NaN g -> False
         keep = always | (h < threshold)
         sub = t.filter(pa.array(keep))
         kept.append((sub, ids[keep], h[keep], always[keep]))
@@ -290,7 +297,8 @@ def export_viewer(dataset_dir, out_dir, *, target=DEFAULT_TARGET,
                       "dataset_selection": manifest["selection"]},
         "sampling": {"method": "splitmix64(id) < f * 2**64", "target": target,
                      "n_eligible": int(n_eligible), "f": frac,
-                     "always_g_max": always_g_max, "n_always": int(always.sum()),
+                     "always_g_max": always_g_max, "always_named": True,
+                     "n_always": int(always.sum()), "n_named_extra": int(n_named_extra),
                      "order": "always-kept first, then by hash (every prefix is a random sample)"},
         "uncertainty_code": {"f": "(r_hi_pc - r_lo_pc) / (2 dist_pc)", "f_min": U_F_MIN,
                              "f_max": U_F_MAX, "missing": 255,

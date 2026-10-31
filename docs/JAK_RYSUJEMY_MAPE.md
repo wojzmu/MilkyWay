@@ -30,10 +30,11 @@ ten sam wynik. Kolejny eksport wybierze więc te same gwiazdy.
 
 Ważne jest, że **ten sam ułamek obowiązuje wszędzie**. Gdzie gwiazd jest
 dwa razy więcej, zostaje ich dwa razy więcej, więc kontrast między gęstym
-dyskiem a pustym halo się zachowuje. Wyjątek: **6 743** gwiazdy
-widoczne gołym okiem (G < 6) zostają zawsze, bo to je ludzie rozpoznają.
+dyskiem a pustym halo się zachowuje. Wyjątek: gwiazdy widoczne gołym
+okiem (G < 6) i gwiazdy z nazwami (§8) zostają zawsze, bo to je ludzie
+rozpoznają; razem **6 746**.
 
-Wynik: **1 505 769** gwiazd. Kolejność w pliku też jest przemyślana: najpierw
+Wynik: **1 505 771** gwiazd. Kolejność w pliku też jest przemyślana: najpierw
 jasne, potem reszta w kolejności haszu. Dzięki temu każdy początek pliku to
 też losowa próbka, a suwak „Points shown” rysuje po prostu pierwsze k
 punktów, bez przeliczania.
@@ -109,7 +110,9 @@ typu A i F). Z 1250 pc taka gwiazda ma jasność obserwowaną najwyżej
 osłabienia przez pył. Widzimy więc **wszystkie** takie gwiazdy w całej
 kuli, a nie tylko te bliskie.
 
-Jest ich **913 280** i bierzemy wszystkie, bez przerzedzania (10 MB).
+Bez korekty pyłu było ich 913 280, po korekcie (D-024) **1 269 275**,
+i bierzemy wszystkie, bez przerzedzania. Do tego 7 gwiazd z nazwami,
+które są słabsze niż próg (§8), razem 1 269 282.
 W widoku z boku dysk jest wyraźnie cieńszy niż na pełnej mapie. W liczbach
 (walec o promieniu 800 pc wokół Słońca): w pierwszych 100 pc nad lub pod
 płaszczyzną jest 15 771 takich gwiazd, a w przedziale 700–800 pc tylko 917,
@@ -132,10 +135,11 @@ Aż 86 z nich to wiersze Hipparcosa, bo jasne gwiazdy oślepiają detektor
 Gai. Najdalszy jest Deneb, 990 pc, z dużą niepewnością.
 
 **Plik.** Eksport zapisuje `labels.json` (nazwa, pozycja, indeks punktu
-w `points.bin`). Gwiazda nie musi być wśród narysowanych punktów: Proxima
-i Gwiazda Barnarda wypadły przy przerzedzaniu (są słabsze niż G = 6),
-a na mapie tracers 7 karłów jest za słabych. Podpis i tak stoi w ich
-miejscu. Gdyby jakiejś gwiazdy zabrakło w katalogu albo leżała dalej niż
+w `points.bin`). Gwiazdy z nazwami trafiają do eksportu zawsze, z pominięciem
+przerzedzania i progu jasności, żeby każdy podpis dało się kliknąć (D-027).
+Bez tego Proxima i Gwiazda Barnarda wypadały przy przerzedzaniu, a na mapie
+tracers brakowało 7 karłów słabszych niż M_G = 2 (Altair, Procjon, Alfa
+Centauri A i B, Proxima, Gwiazda Barnarda, Alkor). Gdyby jakiejś gwiazdy zabrakło w katalogu albo leżała dalej niż
 1250 pc, eksport wypisze ją w raporcie.
 
 **Tłok.** Z daleka wszystkie bliskie gwiazdy (Syriusz 2,6 pc, Wega

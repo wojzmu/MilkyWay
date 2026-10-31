@@ -155,3 +155,17 @@ def test_export_star_names(dataset, tmp_path):
     assert by["Third"] == ["HIP 3", "Gaia DR3 42"]
     on_disk = json.loads((tmp_path / "star_names.json").read_text(encoding="utf-8"))
     assert on_disk["names"] == doc["names"]
+
+
+def test_named_stars_bypass_abs_mag_cut(dataset, tmp_path):
+    """Every label gets a point, even when the magnitude cut drops its star (D-027)."""
+    names = tmp_path / "names.csv"
+    names.write_text("hip,name,name_iau,v_mag,tier\n3,Third,Third,1.0,1\n1,First,First,2.0,2\n",
+                     encoding="utf-8")
+    ve.export_viewer(dataset, tmp_path / "out", target=None, abs_mag_max=-99,
+                     names_file=names)
+    *_, idx, n, xyz, rgbu, cls, rec = _read(tmp_path / "out")
+    doc = json.loads((tmp_path / "out" / "labels.json").read_text(encoding="utf-8"))
+    assert n == 2 and idx["sampling"]["n_named_extra"] == 2
+    assert sorted(lb["point"] for lb in doc["labels"]) == [0, 1]
+    assert idx["labels"]["not_exported"] == 0

@@ -77,7 +77,7 @@ def _export_viewer(dataset, out_dir, abs_mag_max=None, target=None):
     s = idx["sampling"]
     print(f"Wrote {out_dir}: {idx['n']} stars of {s['n_eligible']} within "
           f"{idx['selection']['dist_pc_max']} pc (f = {s['f']:.4f}, "
-          f"{s['n_always']} bright stars always kept)")
+          f"{s['n_always']} bright or named stars always kept)")
     lb = idx["labels"]
     print(f"  labels: {lb['n']} named stars ({lb['not_exported']} not among the exported "
           f"points); not in catalogue: {lb['not_in_catalogue'] or 'none'}; "

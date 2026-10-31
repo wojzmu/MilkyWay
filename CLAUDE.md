@@ -185,9 +185,19 @@ npm run preview   # serve the production build
   `plotly.js`). Clicking a star in either view selects it in both.
 - **Data flow** — [loadStars.ts](web/src/data/loadStars.ts) fetches a CSV from
   `web/public/` (papaparse) and maps rows to the typed `Star`
-  ([types.ts](web/src/types.ts)). The filename is `VITE_DATASET_FILE` from
-  `web/.env`. Filtering/domains live in [filters.ts](web/src/filters.ts),
-  categories in [categories.ts](web/src/categories.ts).
+  ([types.ts](web/src/types.ts)). Filtering/domains live in
+  [filters.ts](web/src/filters.ts), categories in
+  [categories.ts](web/src/categories.ts).
+- **Dataset selection** — which CSV loads is chosen at runtime, not baked in. The
+  "Dataset" picker in the top bar is driven by a curated manifest,
+  [web/public/datasets.json](web/public/datasets.json), listing each selectable
+  file with a friendly `label`/`description` (and one `default`). To offer a new
+  dataset, drop the CSV in `web/public/` and add an entry there — do **not** list
+  the huge `*_1000psc.csv` working set (too large for GitHub Pages).
+  [datasets.ts](web/src/data/datasets.ts) fetches the manifest and resolves the
+  active file by precedence `?dataset=` URL param → `localStorage` → manifest
+  `default` → first entry, persisting the choice back to both. `VITE_DATASET_FILE`
+  survives only as the fallback when the manifest can't be fetched.
 
 > The `web/public/*psc.csv` files are the user's own working datasets — **leave
 > them alone** (don't regenerate, overwrite, or "fix" them). They carry extra

@@ -69,6 +69,22 @@ Szacunki w sesjach pracy z Claude Code (wieczór lub pół dnia weekendu).
 | M5 | Pył (Edenhofer) dla kolorów, orientacyjny fit wysokości skali | 2–3 | grudzień |
 | M6 | Przejście na DR4 (zmiana konfiguracji + test katalogu referencyjnego) | 1–2 | styczeń |
 
+**Stan na 31.10.2026** (gałąź `m3-odleglosci`, wypchnięta, bez PR; bazuje na
+niepołączonej `m1-magazyn`):
+- M1–M4 **zrobione**; dokumenty: `JAK_POBIERAMY_DANE.md`,
+  `JAK_LICZYMY_ODLEGLOSCI.md`, `JAK_RYSUJEMY_MAPE.md`. M2 T6 (ESA = AIP)
+  i T7 (przegląd) zamknięte (D-022).
+- Dane lokalne (git-ignorowane): pobranie `data/raw/dr3/dr3_g15_p0.5`,
+  zbiór 60 pc `data/raw/dr3/dr3_p16.667`, Hipparcos `data/raw/dr3/aux`,
+  katalog `data/dr3_g15_p0.5_v2` (23 373 946 wierszy), eksporty viewera
+  `web/public/map_1250pc` i `web/public/map_tracers_1250pc`.
+- **Otwarte przed publikacją mapy:** hosting eksportów na Hugging Face
+  (D-023; konto i wgranie po stronie użytkownika), potem pełne URL-e
+  w `web/public/datasets.json` i merge do `master`.
+- **Następny: M5** — mapa pyłu Edenhofer (`dustmaps.edenhofer2023`, D-003)
+  dla kolorów i sprawdzenia „promieni” (cienie obłoków, D-023), fit
+  wysokości skali z M_G ≤ 6 (D-014); dokument prostym językiem na koniec.
+
 Termin M2 przestał być twardy (D-012). Archiwum ESA jest wyłączone
 25.11 12:00 – 2.12 CET, ale **głównym serwisem pobierania jest AIP**
 (`gaia.aip.de/tap`): sprawdzone 31.10 — pełna `gaiadr3.gaia_source`

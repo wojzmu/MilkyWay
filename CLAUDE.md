@@ -87,6 +87,15 @@ python MilkyWay.py --build [--fetch-id ID] [--dataset-id ID]   # raw tiles + Hip
 
 Needs a complete fetch and `--fetch-aux`. Writes the schema-v2 dataset with zero-point-corrected parallaxes, inversion distances and Galactocentric xyz; all rows are kept (the 1.25 kpc cut happens at export, M4). `tests/test_reference.py` compares against the frozen 60 pc reference using the local no-G-limit fetch `data/raw/dr3/dr3_p16.667` and skips when it is absent.
 
+Viewer export (milestone M4; `milkyway/viewer_export.py`, D-021/D-023):
+
+```bash
+python MilkyWay.py --dataset dr3_g15_p0.5_v2 --export-viewer web/public/map_1250pc            # 1.5 M stars, thinned
+python MilkyWay.py --dataset dr3_g15_p0.5_v2 --export-viewer web/public/map_tracers_1250pc     --abs-mag-max 2 --viewer-target 0                                                     # disc tracers, all 913 k
+```
+
+Writes `points.bin` (v2: int16 positions, 11 B/star), `details.bin` (24 B/star, read per click via HTTP Range) and `index.json`; output is git-ignored. Not deployed yet: plan is hosting on Hugging Face and absolute URLs in `web/public/datasets.json` (the loader accepts them).
+
 `data/reference/nearby_stars_60.0pc.csv` is the frozen reference catalogue for
 compatibility tests (SHA-256 in D-013); tests that need it skip when it is absent.
 

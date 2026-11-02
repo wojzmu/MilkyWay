@@ -172,9 +172,10 @@ Arktur.
   poprawione o pył (też M5).
 - **Diagram HR** jest wyłączony dla tej mapy. Pełne dane do niego są
   w `details.bin`, ale wymagałyby pobrania 36 MB. Może wrócić później.
-- **Strona publiczna.** Pliki mapy (~50 MB) są generowane lokalnie i nie
-  trafiają do gita, więc strona na GitHub Pages ich na razie nie pokazuje.
-  Plan: hosting na Hugging Face, a w aplikacji pełny adres URL (D-023).
+- **Strona publiczna.** Pliki mapy (~97 MB obu map) są generowane lokalnie
+  i nie trafiają do gita. Leżą na Hugging Face
+  (`huggingface.co/datasets/WojZmu/MilkyWay`), a aplikacja zna ich pełne
+  adresy (D-028). Po każdym nowym eksporcie trzeba je wgrać ponownie.
 - **„Promienie” w widoku z góry** to głównie cienie obłoków pyłu: obłok
   100–200 pc od nas zasłania klin aż do brzegu mapy. W płaszczyźnie dysku
   (|b| < 5°, 600–1200 pc) w kierunku centrum Galaktyki jest ok. 130 tys.

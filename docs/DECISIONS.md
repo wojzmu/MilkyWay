@@ -11,6 +11,20 @@ decyzja — dopisz.
 
 ---
 
+## D-028 · 2026-11-02 · Mapy viewera na Hugging Face
+**Decyzja:** eksporty `map_1250pc/` i `map_tracers_1250pc/` leżą w
+repozytorium dataset `huggingface.co/datasets/WojZmu/MilkyWay` (wgrane
+przez użytkownika, commity 310ca40 i a146e86). `web/public/datasets.json`
+wskazuje `…/resolve/main/<mapa>/index.json`; pozostałe pliki loader bierze
+z tego samego katalogu. Gałąź `main`, nie przypięty commit: nowy eksport
+to ponowne wgranie bez zmiany w kodzie.
+**Dlaczego:** sprawdzone 2.11: wszystkie 8 plików ma ten sam SHA-256 co
+lokalny eksport z 6fd8cea; przekierowanie na CDN daje CORS (`*`) i Range
+206, więc viewer na localhost ładuje obie mapy i dane gwiazdy po kliknięciu
+(Altair, Proxima) z HF. Kosztem `main` jest to, że wgranie niepełnego
+eksportu (np. sam `points.bin`) rozjedzie pliki; wgrywać cały folder naraz.
+**Źródło:** rozmowa w sesji Claude Code, 2.11.2026.
+
 ## D-027 · 2026-10-31 · Nazwy gwiazd po angielsku; Słońce stałej wielkości
 **Decyzja:**
 - Podpisy gwiazd w viewerze po angielsku, jak cały interfejs („Sun”,

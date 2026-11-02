@@ -17,13 +17,13 @@
       "description": "Dense local sample out to 20 pc."
     },
     {
-      "file": "map_1250pc/index.json",
+      "file": "https://huggingface.co/datasets/WojZmu/MilkyWay/resolve/main/map_1250pc/index.json",
       "format": "bin",
       "label": "Galactic disc — 1.25 kpc (1.5 M stars)",
       "description": "Gaia DR3 G < 15 within 1250 pc, zero-point-corrected distances, thinned to ~1.5 million stars. Colours corrected for dust reddening (Edenhofer 2024 3D map)."
     },
     {
-      "file": "map_tracers_1250pc/index.json",
+      "file": "https://huggingface.co/datasets/WojZmu/MilkyWay/resolve/main/map_tracers_1250pc/index.json",
       "format": "bin",
       "label": "Galactic disc — bright tracers (M_G ≤ 2, 1.3 M stars)",
       "description": "Every Gaia DR3 star within 1250 pc with dust-corrected absolute magnitude M_G ≤ 2: bright enough to be seen through the whole volume at G < 15, so the density shows the disc rather than the survey's magnitude limit. Colours corrected for dust reddening."

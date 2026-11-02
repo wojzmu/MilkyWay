@@ -82,14 +82,14 @@ niepołączonej `m1-magazyn`):
   mapa pyłu `data/dust/edenhofer2023`, katalog `data/dr3_g15_p0.5_v3`
   (23 373 946 wierszy; v2 nie otwiera się w schemacie v3), eksporty viewera
   `web/public/map_1250pc` i `web/public/map_tracers_1250pc`.
-- **Otwarte przed publikacją mapy:** hosting eksportów na Hugging Face
-  (D-023; konto i wgranie po stronie użytkownika), potem pełne URL-e
-  w `web/public/datasets.json` i merge do `master`.
+- **Hosting map: zrobione** (D-028): Hugging Face `datasets/WojZmu/MilkyWay`,
+  pełne URL-e w `web/public/datasets.json`. **Otwarte przed publikacją:**
+  merge do `master`.
 - **Zadanie viewera: nazwy znanych gwiazd** — **zrobione** (D-026):
   102 gwiazdy z listy IAU, nazwy po angielsku (D-027), `labels.json` w obu mapach,
   ukrywanie przy tłoku; opis w `JAK_RYSUJEMY_MAPE.md` §8.
 - **Następny: M6** — przejście na DR4, gdy będzie dostępne (sprawdzić
-  OP-1: gdzie i z jakimi kolumnami). Do tego czasu: hosting mapy.
+  OP-1: gdzie i z jakimi kolumnami).
 
 Termin M2 przestał być twardy (D-012). Archiwum ESA jest wyłączone
 25.11 12:00 – 2.12 CET, ale **głównym serwisem pobierania jest AIP**

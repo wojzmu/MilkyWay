@@ -94,7 +94,7 @@ python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-viewer web/public/map_1250
 python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-viewer web/public/map_tracers_1250pc     --abs-mag-max 2 --viewer-target 0                                                     # disc tracers (abs_g0 <= 2), all 1.27 M
 ```
 
-Writes `points.bin` (v2: int16 positions, 11 B/star), `details.bin` (24 B/star, read per click via HTTP Range), `labels.json` (names from `milkyway/star_names.csv` matched by `hip`, D-026) and `index.json`; output is git-ignored. Not deployed yet: plan is hosting on Hugging Face and absolute URLs in `web/public/datasets.json` (the loader accepts them).
+Writes `points.bin` (v2: int16 positions, 11 B/star), `details.bin` (24 B/star, read per click via HTTP Range), `labels.json` (names from `milkyway/star_names.csv` matched by `hip`, D-026) and `index.json`; output is git-ignored. Hosted on Hugging Face (`datasets/WojZmu/MilkyWay`, folders `map_1250pc/` and `map_tracers_1250pc/`, D-028); `web/public/datasets.json` points at their `resolve/main/.../index.json` URLs. After a re-export the user uploads the folder again; local copies still load via `?dataset=map_1250pc/index.json`.
 
 CSV-view star names (D-026): `python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-star-names web/public/star_names.json` (git-tracked; maps each name to every `star_id` a legacy CSV may use, so the CSVs stay untouched).
 

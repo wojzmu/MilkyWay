@@ -47,10 +47,18 @@ function makeStarSprite(): THREE.Texture {
  * Per-star point-size multiplier from estimated mass (solar masses). Uses a
  * sqrt law so the huge dynamic range (red dwarfs ~0.1 M☉ up to ~2-3 M☉) stays
  * visually readable, with a floor so the smallest stars remain clickable.
- * Stars with no mass estimate fall back to a typical M-dwarf size.
+ * Stars with no mass estimate (mostly A stars above the mass table such as
+ * Vega or Sirius, giants, white dwarfs) take a main-sequence mass from their
+ * absolute magnitude, M ∝ L^(1/3.5); without that, a typical M-dwarf size.
+ * Display only: the brightest named stars would otherwise be faint dots.
  */
-function massToSizeMul(mass: number | null): number {
-  const m = mass && mass > 0 ? mass : 0.3;
+function massToSizeMul(mass: number | null, absG: number | null): number {
+  const m =
+    mass && mass > 0
+      ? mass
+      : absG !== null && Number.isFinite(absG)
+        ? 10 ** ((4.83 - absG) / (2.5 * 3.5))
+        : 0.3;
   return Math.min(2.2, Math.max(0.45, Math.sqrt(m)));
 }
 
@@ -88,8 +96,8 @@ function StarPoints({ stars, selected, onSelect, colorMode, names }: Props) {
       positions[i * 3 + 0] = s.x!;
       positions[i * 3 + 1] = s.z!; // map Galactic z -> screen up
       positions[i * 3 + 2] = s.y!;
-      // Size scales with estimated mass (mass_est, falling back to FLAME mass).
-      sizes[i] = massToSizeMul(s.massEst ?? s.massFlame);
+      // Size scales with estimated mass (mass_est, then FLAME mass, then abs_g).
+      sizes[i] = massToSizeMul(s.massEst ?? s.massFlame, s.absG);
     });
     return { positions, sizes };
   }, [plottable]);

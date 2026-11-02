@@ -12,6 +12,16 @@ interface Props {
 const nameOf = (cloud: PointCloud, i: number) =>
   cloud.labels.find((l) => l.point === i);
 
+/** Parallax over error at or below which the catalogue flags dist_flag = low_snr (D-020). */
+const LOW_SNR = 5;
+
+/** ϖ/σ from the distance and the lower quantile r_lo = 1000/(ϖ + σ). */
+const parallaxSnr = (d: number, rLo: number) => {
+  const plx = 1000 / d;
+  const sigma = 1000 / rLo - plx;
+  return sigma > 0 ? plx / sigma : Infinity;
+};
+
 const fmt = (n: number, digits = 2, unit = "") =>
   Number.isFinite(n) ? `${n.toFixed(digits)}${unit ? ` ${unit}` : ""}` : "—";
 
@@ -52,11 +62,18 @@ export default function PointDetails({ cloud, index, onClose }: Props) {
   const val = (f: (d: PointDetail) => string) =>
     pending ? "…" : det ? f(det) : "—";
   const absG = det ? det.gMag - 5 * Math.log10(d) + 5 : NaN;
+  const snr = det ? parallaxSnr(d, det.rLo) : Infinity;
+  const uncertain = snr <= LOW_SNR;
+  // r_hi is missing when ϖ − σ ≤ 0: the interval is open upwards.
+  const interval = (t: PointDetail) =>
+    Number.isFinite(t.rHi)
+      ? `${fmt(t.rLo, 0)} – ${fmt(t.rHi, 0)} pc (${fmt(t.rLo * PC_TO_LY, 0)} – ${fmt(t.rHi * PC_TO_LY, 0)} ly)`
+      : `> ${fmt(t.rLo, 0)} pc (> ${fmt(t.rLo * PC_TO_LY, 0)} ly)`;
 
   const rows: [string, string][] = [
     ["Class", cls],
-    ["Distance", `${fmt(d, 1, "pc")} (${fmt(d * PC_TO_LY, 0, "ly")})`],
-    ["Interval", val((t) => `${fmt(t.rLo, 1)} – ${fmt(t.rHi, 1)} pc`)],
+    ["Distance", `${uncertain ? "≈ " : ""}${fmt(d, 1, "pc")} (${fmt(d * PC_TO_LY, 0, "ly")})`],
+    ["Interval (±1σ)", val(interval)],
     ["G mag", val((t) => fmt(t.gMag, 2))],
     ["Absolute G", val(() => fmt(absG, 2))],
     ["BP − RP", val((t) => fmt(t.bpRp, 3))],
@@ -97,6 +114,13 @@ export default function PointDetails({ cloud, index, onClose }: Props) {
           ))}
         </tbody>
       </table>
+      {uncertain && (
+        <p className="details__warn" role="note">
+          Uncertain distance: the parallax is only {fmt(snr, 1)}× its error, so
+          1/parallax is a rough guess. The true distance can lie anywhere in the
+          interval above (or beyond it).
+        </p>
+      )}
     </aside>
   );
 }

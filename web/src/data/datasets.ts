@@ -10,6 +10,14 @@ export interface DatasetMeta {
   label: string; // friendly name shown in the picker
   description?: string; // optional longer blurb (tooltip)
   default?: boolean; // pre-selected when nothing else resolves
+  /** "csv" (default) or "bin" (binary point cloud described by an index.json). */
+  format?: "csv" | "bin";
+}
+
+/** True when the entry is a binary point-cloud dataset. */
+export function isBinDataset(d: DatasetMeta | undefined): boolean {
+  if (!d) return false;
+  return d.format === "bin" || (d.format === undefined && d.file.endsWith(".json"));
 }
 
 const MANIFEST_URL = `${import.meta.env.BASE_URL}datasets.json`;

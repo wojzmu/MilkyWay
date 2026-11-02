@@ -1,9 +1,12 @@
 import type { Star } from "../types";
 import { PC_TO_LY } from "../filters";
+import type { StarName } from "./StarNames";
 
 interface Props {
   star: Star | null;
   onClose: () => void;
+  /** Well-known name of this star, if it has one (D-026). */
+  name?: StarName;
 }
 
 function fmt(n: number | null, digits = 2, unit = ""): string {
@@ -14,12 +17,15 @@ function fmt(n: number | null, digits = 2, unit = ""): string {
 /** Side panel describing the currently selected star. Renders nothing when no
  * star is selected, so the map/diagram stays fully visible (important on mobile,
  * where the panel is a bottom sheet). */
-export default function StarDetails({ star, onClose }: Props) {
+export default function StarDetails({ star, onClose, name }: Props) {
   if (!star) return null;
 
-  const title = star.properName ?? star.simbadMainId ?? star.starId;
+  const title = name?.name ?? star.properName ?? star.simbadMainId ?? star.starId;
 
   const rows: [string, string][] = [
+    ...(name && name.name !== name.name_iau
+      ? ([["IAU name", name.name_iau]] as [string, string][])
+      : []),
     ["Catalogue ID", star.starId],
     ["SIMBAD ID", star.simbadMainId ?? "—"],
     ["Class", star.starClass],

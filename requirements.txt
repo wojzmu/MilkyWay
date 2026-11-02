@@ -1,0 +1,12 @@
+# Python >= 3.11 (hashlib.file_digest)
+astroquery
+astropy
+numpy
+pandas
+matplotlib
+adjustText
+pyarrow>=15
+duckdb>=1.0
+astropy-healpix
+pytest
+gaiadr3-zeropoint==0.1.0

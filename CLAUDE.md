@@ -33,6 +33,10 @@ Two parts that share one dataset:
 - Gdy coś w planie okazuje się nieprawdziwe (np. zmierzona liczba wierszy,
   nazwa kolumny w DR4), popraw plan i dopisz decyzję zamiast obchodzić
   problem w kodzie.
+- Każdy kamień milowy kończy się dokumentem prostym językiem w `docs/`
+  (wzór: `docs/JAK_POBIERAMY_DANE.md`): co robimy, dlaczego, na liczbach
+  z naszych danych, jakie są skutki uboczne, słowniczek. Liczby sprawdzaj
+  w kodzie, nie z pamięci.
 - Pobieranie DR3 idzie z AIP (`gaia.aip.de/tap`, `QUEUE=2h`, anonimowo),
   ESA jest zapasem (wyłączone 25.11.2026 12:00 – 2.12 CET). Cel: pobranie
   przed 25.11, ale to już nie twardy termin (D-012).
@@ -40,7 +44,7 @@ Two parts that share one dataset:
 ## Commands
 
 ```bash
-pip install astroquery astropy numpy pandas matplotlib adjustText   # dependencies (no requirements.txt)
+pip install -r requirements.txt                 # dependencies (incl. pyarrow, duckdb, pytest)
 python MilkyWay.py                              # full pipeline (networked) -> CSV + PNGs (see below)
 python MilkyWay.py --plot-only                  # offline: load existing CSV, only redraw the PNGs
 python MilkyWay.py --plot-only --csv FILE.csv   # ...from a specific CSV
@@ -55,7 +59,55 @@ ADQL queries, and the output filename becomes `nearby_stars_<dist>pc.csv`. With
 from the standard 60 pc catalogue by default, since a smaller-volume file may not
 exist yet).
 
-There is no test suite, linter config, or build step. A plain run hits live ESA
+Parquet store (milestone M1; datasets live in the git-ignored `data/<id>/`):
+
+```bash
+python MilkyWay.py --to-parquet FILE.csv [--dataset-id ID]   # legacy CSV -> data/<id>/ (Parquet + manifest)
+python MilkyWay.py --plot-only --dataset ID                  # redraw the PNGs from a Parquet dataset
+python MilkyWay.py --dataset ID --export-csv OUT.csv         # legacy CSV for the web viewer
+python -m pytest -q                                          # test suite (~1 min; offline)
+```
+
+Raw Gaia fetch (milestone M2; `milkyway/fetch.py` + the contract in `milkyway/raw.py`; networked,
+resumable, writes to the git-ignored `data/raw/dr3/<fetch-id>/`):
+
+```bash
+python MilkyWay.py --fetch [--fetch-id ID] [--max-jobs 2]   # all 192 tiles (G<15, plx>0.5) -> tiles/ + fetch_manifest.json
+python MilkyWay.py --fetch-tiles 111,112                    # pilot subset (no manifest)
+python MilkyWay.py --fetch-aux                              # Hipparcos tables -> data/raw/dr3/aux/
+```
+
+Progress goes to `fetch.log`; read `fetch_summary.json` for the outcome. Exit code 1 if any tile failed. A completed fetch is the permanent local copy: later stages read it, never the archive. Back up `data/raw/` (~4.2 GB) and check a restored copy with `raw.open_fetch(dir, verify_hashes=True)`. Re-running `--fetch` on a complete fetch makes no network call.
+
+Catalogue build (milestone M3; `milkyway/build.py`, offline):
+
+```bash
+python MilkyWay.py --build [--fetch-id ID] [--dataset-id ID] [--dust-map FITS | --no-dust]   # -> data/<fetch-id>_v3/
+```
+
+Needs a complete fetch, `--fetch-aux` and (unless `--no-dust`) the Edenhofer dust map `data/dust/edenhofer2023/mean_and_std_healpix.fits` (Zenodo 8187943, 3.25 GB, md5 in `milkyway/dust.py`; M5, D-024). Writes the schema-v3 dataset with zero-point-corrected parallaxes, inversion distances, Galactocentric xyz and extinction; all rows are kept (the 1.25 kpc cut happens at export, M4). `tests/test_reference.py` compares against the frozen 60 pc reference using the local no-G-limit fetch `data/raw/dr3/dr3_p16.667` and skips when it is absent.
+
+Viewer export (milestone M4; `milkyway/viewer_export.py`, D-021/D-023):
+
+```bash
+python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-viewer web/public/map_1250pc            # 1.5 M stars, thinned
+python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-viewer web/public/map_tracers_1250pc     --abs-mag-max 2 --viewer-target 0                                                     # disc tracers (abs_g0 <= 2), all 1.27 M
+```
+
+Writes `points.bin` (v2: int16 positions, 11 B/star), `details.bin` (24 B/star, read per click via HTTP Range), `labels.json` (names from `milkyway/star_names.csv` matched by `hip`, D-026) and `index.json`; output is git-ignored. Hosted on Hugging Face (`datasets/WojZmu/MilkyWay`, folders `map_1250pc/` and `map_tracers_1250pc/`, D-028); `web/public/datasets.json` points at their `resolve/main/.../index.json` URLs. After a re-export the user uploads the folder again; local copies still load via `?dataset=map_1250pc/index.json`.
+
+CSV-view star names (D-026): `python MilkyWay.py --dataset dr3_g15_p0.5_v3 --export-star-names web/public/star_names.json` (git-tracked; maps each name to every `star_id` a legacy CSV may use, so the CSVs stay untouched).
+
+Scale-height fit (milestone M5; `milkyway/scale_height.py`, D-025, offline):
+
+```bash
+python MilkyWay.py --dataset dr3_g15_p0.5_v3 --scale-height docs/data   # -> scale_height.json + .png
+```
+
+`data/reference/nearby_stars_60.0pc.csv` is the frozen reference catalogue for
+compatibility tests (SHA-256 in D-013); tests that need it skip when it is absent.
+
+There is no linter config or build step for the Python side. A plain run hits live ESA
 Gaia TAP and SIMBAD services over the network, so it needs connectivity and takes
 a while. **`--plot-only` skips all network calls** — it loads a catalogue CSV and
 only regenerates the figures, which is the fast loop when iterating on plotting
@@ -83,14 +135,36 @@ calls `milkyway.cli.main()`. The logic is split by concern:
 | `mass.py` | `estimate_mass`, `mg_upper_bound_for_mass`, `apply_min_mass` |
 | `classify.py` | spectral/CMD classification **and** `flag_spurious_parallax` (shared `_MS_*` ridge) |
 | `query.py` | Gaia/Hipparcos ADQL + SIMBAD (network) |
-| `astrometry.py` | epoch propagation, cross-match, UVW, `add_galactic_xyz` (astropy) |
+| `astrometry.py` | epoch propagation, cross-match, UVW, `add_galactic_xyz`, `galactocentric_xyz` (astropy preset `v4.0`) |
+| `parallax.py` | zero-point via `gaiadr3-zeropoint`, inputs clamped to the interior of its validity range; `zp_origin` (M3) |
+| `distance.py` | inversion distances: quantiles `r_lo_pc`/`dist_pc`/`r_hi_pc`, `dist_flag` (M3) |
+| `build.py` | raw fetch + Hipparcos aux -> catalogue dataset; Hipparcos merge rules (M3) |
+| `scale_height.py` | orientational disc scale-height fit, G/early-K dwarfs in R < 250 pc (M5) |
+| `dust.py` | Edenhofer 3D dust map reader (no healpy), E -> A_G, E(BP−RP), dereddening (M5); inputs in `milkyway/dust_data/` |
 | `pipeline.py` | `gaia/hipparcos_to_common` + `build_merged_catalogue` orchestrator |
 | `plots.py` | figures + helpers (`_resolve_path`, `_save`, `_label_famous`) |
 | `cli.py` | argparse `main()` |
+| `schema.py` | Parquet column contract: `CATALOGUE_SCHEMA`, `conform`, `validate` (D-015) |
+| `csv_io.py` | legacy CSV ↔ Arrow (`read_catalogue_csv`, `write_catalogue_csv`) |
+| `storage.py` | partitioned write (`write_dataset`), manifest, `open_catalog` checks |
+| `catalog_query.py` | DuckDB view `catalog`, `read_catalogue`, `sky_slice`, `z_histogram` |
 
 `color.py`/`photometry.py`/`mass.py`/`classify.py` have **no network imports** and
 are runnable without astroquery/astropy; the astroquery/astropy calls in
-`query.py`/`astrometry.py` stay function-local (lazy). Preserve that separation.
+`query.py`/`astrometry.py` stay function-local (lazy); so does the `zero_point` import in `parallax.py`. Preserve that separation.
+The store modules need pyarrow (and duckdb for `catalog_query`); they are not
+re-exported from the package root and `cli.py` imports them lazily, so the plain
+CSV pipeline runs without them.
+
+**Store invariants** (tested in `tests/test_storage.py`): `source_id` never goes
+through float64 (ids exceed 2⁵³); a dataset is immutable once `manifest.json`
+says `complete` — rebuilds get a new `dataset_id`; partition files are written as
+`.tmp` then renamed and the manifest last. `open_catalog` (footers only) checks the
+schema version and columns, that `catalog/` holds exactly the listed files, each
+file's schema and row count, and `expected_partitions`; content changes need
+`verify_hashes=True`. Readers use the manifest's file list, never a glob.
+Schema changes bump `schema.SCHEMA_VERSION` (old datasets then refuse to open
+until rebuilt) and get a `DECISIONS.md` entry. The current version is 3 (D-024: extinction columns); older datasets refuse to open until rebuilt.
 
 ### Pipeline flow
 
@@ -199,6 +273,16 @@ npm run preview   # serve the production build
   active file by precedence `?dataset=` URL param → `localStorage` → manifest
   `default` → first entry, persisting the choice back to both. `VITE_DATASET_FILE`
   survives only as the fallback when the manifest can't be fetched.
+
+- **Binary point-cloud mode (M4, D-021)** — a manifest entry with `"format": "bin"`
+  (or a `.json` file) points at an `index.json` written by
+  `python MilkyWay.py --dataset ID --export-viewer web/public/map_1250pc`
+  (git-ignored, ~60 MB). [loadPointCloud.ts](web/src/data/loadPointCloud.ts) reads
+  `points.bin` whole and `details.bin` one 24 B record per click (HTTP Range);
+  [GalaxyField3D.tsx](web/src/components/GalaxyField3D.tsx) draws ~1.5 M points
+  with one ShaderMaterial: every filter (distance, uncertainty, class, brightness,
+  points shown via drawRange) is a uniform, never a per-point JS object. The HR
+  diagram is disabled for bin datasets.
 
 > The `web/public/*psc.csv` files are the user's own working datasets — **leave
 > them alone** (don't regenerate, overwrite, or "fix" them). They carry extra

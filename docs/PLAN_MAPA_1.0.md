@@ -31,7 +31,7 @@ szacunek, nie pomiar.
 | Funkcja selekcji `parallax > 0.5 AND phot_g_mean_mag < g_max` | S3, U2 | `g_max = 15` na start (parametr); G < 19 później |
 | Pobieracz uproszczony: kafelki po `source_id`, joby async, pomijanie gotowych plików | S3 | Bez pełnego klienta UWS, bez atrapy TAP |
 | Korekta zero-pointu (`gaiadr3-zeropoint`, przycięcie do zakresu z flagą) | S2 | Bez wariantów systematyki |
-| Odległość: inwersja z korektą dla ϖ/σ > 5, `dist_origin`, `r_lo/r_med/r_hi` | S2 | EDSD opcjonalnie, tylko do viewera |
+| Odległość: inwersja ϖ_c dla wszystkich, flaga `low_snr` dla ϖ/σ ≤ 5, `dist_origin`, `r_lo/r_med/r_hi` (D-020) | S2 | EDSD opcjonalnie, tylko do viewera |
 | Współrzędne galaktocentryczne, preset astropy `v4.0` | S2, U11 | Bez zmian |
 | Mapa pyłu Edenhofer 2024 (średnia) do odczerwienienia koloru | S5 | Bez próbek posterioru |
 | Eksport binarny dla viewera, przerzedzenie, przezroczystość wg niepewności | S1 | Jeden plik, bez kafelków x/y/z na start |
@@ -69,12 +69,35 @@ Szacunki w sesjach pracy z Claude Code (wieczór lub pół dnia weekendu).
 | M5 | Pył (Edenhofer) dla kolorów, orientacyjny fit wysokości skali | 2–3 | grudzień |
 | M6 | Przejście na DR4 (zmiana konfiguracji + test katalogu referencyjnego) | 1–2 | styczeń |
 
+**Stan na 31.10.2026** (gałąź `m3-odleglosci`, wypchnięta, bez PR; bazuje na
+niepołączonej `m1-magazyn`):
+- M1–M4 **zrobione**; dokumenty: `JAK_POBIERAMY_DANE.md`,
+  `JAK_LICZYMY_ODLEGLOSCI.md`, `JAK_RYSUJEMY_MAPE.md`. M5 **zrobione**:
+  pył (D-024, `JAK_LICZYMY_PYL.md`, katalog schematu v3) i orientacyjna
+  wysokość skali **h ≈ 331 pc** (warianty 316–342; D-025,
+  `JAK_MIERZYMY_DYSK.md`). M2 T6 (ESA = AIP)
+  i T7 (przegląd) zamknięte (D-022).
+- Dane lokalne (git-ignorowane): pobranie `data/raw/dr3/dr3_g15_p0.5`,
+  zbiór 60 pc `data/raw/dr3/dr3_p16.667`, Hipparcos `data/raw/dr3/aux`,
+  mapa pyłu `data/dust/edenhofer2023`, katalog `data/dr3_g15_p0.5_v3`
+  (23 373 946 wierszy; v2 nie otwiera się w schemacie v3), eksporty viewera
+  `web/public/map_1250pc` i `web/public/map_tracers_1250pc`.
+- **Hosting map: zrobione** (D-028): Hugging Face `datasets/WojZmu/MilkyWay`,
+  pełne URL-e w `web/public/datasets.json`. **Otwarte przed publikacją:**
+  merge do `master`.
+- **Zadanie viewera: nazwy znanych gwiazd** — **zrobione** (D-026):
+  102 gwiazdy z listy IAU, nazwy po angielsku (D-027), `labels.json` w obu mapach,
+  ukrywanie przy tłoku; opis w `JAK_RYSUJEMY_MAPE.md` §8.
+- **Następny: M6** — przejście na DR4, gdy będzie dostępne (sprawdzić
+  OP-1: gdzie i z jakimi kolumnami).
+
 Termin M2 przestał być twardy (D-012). Archiwum ESA jest wyłączone
 25.11 12:00 – 2.12 CET, ale **głównym serwisem pobierania jest AIP**
 (`gaia.aip.de/tap`): sprawdzone 31.10 — pełna `gaiadr3.gaia_source`
 (153 kolumny), dostęp anonimowy, kolejka `QUEUE=2h` przyjmowana bez konta,
 COUNT po całej selekcji w 5,5 min. ESA tego dnia zwróciło HTTP 500 i timeout,
-więc jest zapasem, a nie podstawą. Pobranie przed 25.11 pozostaje celem, bo
+więc jest zapasem, a nie podstawą. Trzecim zapasem, niezależnym od TAP, jest
+kopia HATS z LSDB (~190 GB transferu dla naszych kolumn, D-017). Pobranie przed 25.11 pozostaje celem, bo
 daje dwa działające serwisy na wypadek awarii AIP.
 
 ## 4. Orientacyjna wysokość skali (M5) — świadome uproszczenia
@@ -128,3 +151,31 @@ naukowego pomiaru albo większej skali.
   zastępujemy plikami z repo.
 - **Sesje Claude Code** dopisują do `DECISIONS.md` w tym samym PR, w którym
   zmieniają kod, jeśli decyzja wychodzi poza zadanie.
+
+## 7. Otwarte punkty
+
+Sprawy świadomie odłożone. Każda ma warunek, przy którym wraca; zamknięcie
+punktu to wpis w `DECISIONS.md`.
+
+### OP-1 · Wybór źródła pobierania danych Gai
+**Stan (31.10.2026):** TAP z AIP główny (D-012), ESA zapasowy, HATS z LSDB
+trzeci zapas (D-017). Kandydaci i to, co o nich wiemy:
+
+| Źródło | Za | Przeciw |
+|---|---|---|
+| TAP AIP (`gaia.aip.de/tap`) | filtr po stronie serwera (~2,5 GB dla G < 15), anonimowo, `QUEUE=2h` | zależność od jednego serwisu i jego limitów |
+| TAP ESA (`gea.esac.esa.int`) | źródło oficjalne, pierwsze z DR4 | 31.10 HTTP 500 i timeout; wyłączenie 25.11–2.12 |
+| HATS / LSDB (`linea.data.lsdb.io/hats/gaia_dr3`), też MAST na AWS | statyczne pliki, wznawialne, układ HEALPix jak nasz magazyn | brak filtru po G: ~190 GB transferu dla naszych 21 kolumn |
+| Hugging Face (`astro-legacy-archive/gaia-dr3-source`) | proste pobieranie, mirrory | 31.10 w trakcie wgrywania; format ECSV, bez zysku nad HATS |
+
+**Wraca, gdy:**
+- przechodzimy na G < 19 (~1,9·10⁸ wierszy, ~10% całości) — wtedy różnica
+  TAP vs HATS maleje, a stabilność statycznych plików zyskuje na wadze;
+- przechodzimy na DR4 (M6) — sprawdzić, gdzie i kiedy DR4 będzie dostępne
+  (ESA, AIP, HATS) i czy kolumny się zgadzają;
+- AIP zawiedzie przy pobieraniu M2 (limity, awarie, zmiana zasad dostępu);
+- mirror na Hugging Face zostanie ukończony albo pojawi się wersja Parquet
+  z filtrem po jasności.
+
+**Do zrobienia przy powrocie:** pomiar czasu i transferu na jednym kafelku
+z każdego źródła; zgodność wyniku (te same `source_id`, wartości bit w bit).

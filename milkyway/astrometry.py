@@ -68,3 +68,38 @@ def add_galactic_xyz(df):
     df["y_pc"] = d * np.cos(br) * np.sin(lr)
     df["z_pc"] = d * np.sin(br)
     return df
+
+
+GALCEN_PRESET = "v4.0"     # D-001: R_sun = 8.122 kpc, z_sun = 20.8 pc
+
+
+def galactocentric_xyz(ra, dec, dist_pc):
+    """Galactocentric Cartesian x, y, z (pc) with the astropy `v4.0` preset.
+
+    astropy's convention: the Galactic centre at the origin, the Sun at
+    x = -8121.97 pc, z = +20.8 pc (z_sun realised as a rotation), y toward
+    Galactic rotation. Arrays in, float64 arrays out.
+    """
+    from astropy.coordinates import (SkyCoord, Galactocentric,
+                                     galactocentric_frame_defaults)
+    import astropy.units as u
+    with galactocentric_frame_defaults.set(GALCEN_PRESET):
+        frame = Galactocentric()
+    c = SkyCoord(ra=np.asarray(ra, float)*u.deg, dec=np.asarray(dec, float)*u.deg,
+                 distance=np.asarray(dist_pc, float)*u.pc, frame="icrs")
+    gc = c.transform_to(frame).cartesian
+    return gc.x.to_value(u.pc), gc.y.to_value(u.pc), gc.z.to_value(u.pc)
+
+
+def galcen_frame_params():
+    """The preset's five parameters as plain JSON-able values (for manifests)."""
+    from astropy.coordinates import galactocentric_frame_defaults
+    import astropy
+    import astropy.units as u
+    p = galactocentric_frame_defaults.get_from_registry(GALCEN_PRESET)["parameters"]
+    return {"preset": GALCEN_PRESET, "astropy": astropy.__version__,
+            "galcen_ra_deg": float(p["galcen_coord"].ra.deg),
+            "galcen_dec_deg": float(p["galcen_coord"].dec.deg),
+            "galcen_distance_pc": float(p["galcen_distance"].to_value(u.pc)),
+            "galcen_v_sun_kms": [float(v) for v in p["galcen_v_sun"].xyz.to_value(u.km/u.s)],
+            "z_sun_pc": float(p["z_sun"].to_value(u.pc)), "roll_deg": float(p["roll"].to_value(u.deg))}

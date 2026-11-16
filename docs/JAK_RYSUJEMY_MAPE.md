@@ -132,7 +132,14 @@ D-026, D-027.
 **Jak trafiamy na gwiazdę.** Każda nazwa ma numer z katalogu Hipparcosa
 (HIP), a nasz katalog ma kolumnę `hip`. Tak znajdujemy wszystkie 102.
 Aż 86 z nich to wiersze Hipparcosa, bo jasne gwiazdy oślepiają detektor
-Gai. Najdalszy jest Deneb, 990 pc, z dużą niepewnością.
+Gai. Najdalszy jest Deneb, 990 pc (3229 ly), z dużą niepewnością: Hipparcos
+zmierzył jego paralaksę jako 1,01 ± 0,57 mas, czyli błąd to ponad połowa
+wartości. Przedział ±1σ to 633–2273 pc, a literatura podaje ~800 pc
+(~2600 ly, z modelu gwiazdy, nie z paralaksy). Panel gwiazdy pisze wtedy
+„≈” przy odległości i ostrzega, że to zgrubny szacunek (gdy ϖ/σ ≤ 5,
+D-029). Przy zbyt dużej odległości mapa pyłu daje też za dużą ekstynkcję
+(Deneb: A_G = 1,6 mag za Szczeliną Łabędzia), więc kolor po korekcie jest
+zbyt niebieski.
 
 **Plik.** Eksport zapisuje `labels.json` (nazwa, pozycja, indeks punktu
 w `points.bin`). Gwiazdy z nazwami trafiają do eksportu zawsze, z pominięciem

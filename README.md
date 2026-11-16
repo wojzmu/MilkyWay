@@ -5,6 +5,8 @@ MilkyWay builds a clean, de-duplicated catalogue of the stars around the Sun fro
 colour, estimated mass and space velocity, and then lets you explore the result
 as an interactive 3D star map and Hertzsprung–Russell diagram.
 
+**▶ Live demo: <https://wojzmu.github.io/MilkyWay/>**
+
 The repository has two parts that share one dataset:
 
 1. **Pipeline** (Python) — queries ESA's archives, merges and harmonises the two

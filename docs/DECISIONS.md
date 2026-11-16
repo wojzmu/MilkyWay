@@ -11,6 +11,24 @@ decyzja — dopisz.
 
 ---
 
+## D-029 · 2026-11-02 · Niepewne odległości w panelu; rozmiar gwiazd bez masy
+**Decyzja:**
+- Panel gwiazdy na mapach 1,25 kpc liczy ϖ/σ z `dist_pc` i `r_lo_pc`
+  (`details.bin`); przy ϖ/σ ≤ 5 (próg `low_snr`, D-020) pisze „≈” przy
+  odległości, pokazuje przedział ±1σ w pc i ly (otwarty, gdy brak
+  `r_hi_pc`) i ostrzeżenie. Dane i katalog bez zmian.
+- Paralaksy Hipparcosa-2 zamiast ESA 1997 dla wierszy HIP: na później
+  (plan §5), bo zmienia metodę z D-020 i wymaga przebudowy katalogu.
+- Widok CSV: gwiazda bez `mass_est`/`mass_flame` dostaje rozmiar punktu
+  z masy ciągu głównego o jej M_G (M ∝ L^(1/3.5), tylko do wyświetlania),
+  zamiast stałych 0,3 M☉.
+**Dlaczego:** Deneb (HIP 102098, Hipparcos 1997) ma ϖ = 1,01 ± 0,57 mas,
+więc 990 pc (3229 ly) wobec ~800 pc z literatury; to mieści się
+w przedziale 633–2273 pc, ale panel podawał liczbę bez zastrzeżeń
+(uwaga użytkownika). W widoku CSV Vega, Capella, Aldebaran i Algol nie
+mają masy i rysowały się jako drobne kropki pod swoimi podpisami.
+**Źródło:** rozmowa w sesji Claude Code, 2.11.2026.
+
 ## D-028 · 2026-11-02 · Mapy viewera na Hugging Face
 **Decyzja:** eksporty `map_1250pc/` i `map_tracers_1250pc/` leżą w
 repozytorium dataset `huggingface.co/datasets/WojZmu/MilkyWay` (wgrane

@@ -137,6 +137,8 @@ naukowego pomiaru albo większej skali.
 - **Pomiar naukowy**: red clump, Wesenheit, normalizacja, profile h_thin,
   budżet systematyki z 12 próbkami mapy — S5 (z poprawkami U1).
 - **Hipparcos**: `hip_best_neighbour`, `excluded_by_selection` — U4.
+  Do tego paralaksy z Hipparcosa-2 (van Leeuwen 2007) zamiast ESA 1997 dla
+  wierszy HIP (D-029: Deneb 1,01 ± 0,57 mas, ϖ/σ = 1,8).
 - **Etap 3**: inne katalogi, mapy pyłu poza 1,25 kpc, masy, świece
   standardowe, warp i flara — indeks v4 §6.
 

@@ -72,4 +72,4 @@ parse as `null`/`"Unknown"`, so any pipeline-shaped dataset still loads.
 Deploys to GitHub Pages via
 [`../.github/workflows/main.yml`](../.github/workflows/main.yml) on push to
 `master`. Vite `base` is `/MilkyWay/`, so the app is served from
-`https://<user>.github.io/MilkyWay/`.
+<https://wojzmu.github.io/MilkyWay/>.
